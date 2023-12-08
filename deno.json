@@ -1,0 +1,28 @@
+{
+  "tasks": {
+    "debug": "deno run --allow-env --inspect-brk --allow-net --unstable --allow-read --allow-run --allow-write main.ts",
+    "dev": "deno run --allow-env --watch --allow-net --unstable --allow-read --allow-run --allow-write main.ts",
+    "start": "deno run --allow-env --allow-net --unstable --allow-read --allow-run --allow-write main.ts"
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.208.0/"
+  },
+  "lint": {
+    "include": ["*.ts"],
+    "exclude": ["lib/", "static/"],
+    "rules": {
+      "tags": ["recommended"],
+      "include": ["no-unused-vars"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve",
+    "include": ["*.ts"],
+    "exclude": ["lib/", "static/", "templates.ts"]
+  }
+}
