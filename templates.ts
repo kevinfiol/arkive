@@ -1,13 +1,15 @@
-const _if = (condition: unknown, template: string) => (
-  condition ? template : ''
-);
+import type { FileTuple } from './main.ts';
 
-const _forEach = (arr: unknown[], fn: (x: unknown) => string) => (
-  arr.reduce((a: string, c: unknown) =>
+function _if(condition: unknown, template: string) {
+  return condition ? template : '';
+}
+
+function _forEach<T>(arr: T[], fn: (x: T) => string) {
+  return arr.reduce((a: string, c: T) =>
     a += (fn(c) || ''),
     ''
-  )
-);
+  );
+}
 
 const Layout = (title: string, content: string) => `
   <!DOCTYPE html>
@@ -28,10 +30,13 @@ const Layout = (title: string, content: string) => `
   </html>
 `;
 
-export const Home = () => Layout('arkive', `
+export const Home = ({ files }: { files: Array<FileTuple> }) => Layout('arkive', `
   <main>
     <h1>arkive</h1>
     <a href="/add">add</a>
+    ${_forEach<FileTuple>(files, ([title, path]) => `
+      <a href="${path}">${title}</a>
+    `)}
   </main>
 `);
 
