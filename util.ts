@@ -26,13 +26,15 @@ export async function fetchDocumentTitle(url: string) {
     const match = text.match(/<title>\s*(.*?)\s*<\/title>/);
 
     if (!match || typeof match[1] !== 'string') {
-      throw new Error('Unable to parse title!');
+      // default to url if the document doesn't have a title
+      data = url;
+    } else {
+      data = match[1];
     }
-
-    data = match[1];
   } catch (e) {
     console.log('Unable to fetch title for: ', url);
     console.error(e);
+    error = e;
   }
 
   return { data, error };

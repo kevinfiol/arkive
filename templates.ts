@@ -34,9 +34,14 @@ export const Home = ({ files }: { files: Array<FileTuple> }) => Layout('arkive',
   <main>
     <h1>arkive</h1>
     <a href="/add">add</a>
-    ${_forEach<FileTuple>(files, ([title, path]) => `
-      <a href="${path}">${title}</a>
-    `)}
+    <ul>
+      ${_forEach<FileTuple>(files, ([filename, title]) => `
+        <li>
+          <a href="/archive/${filename}">${title}</a>
+          <a href="/delete/${filename}">delete</a>
+        </li>
+      `)}
+    </ul>
   </main>
 `);
 
@@ -47,6 +52,18 @@ export const Add = () => Layout('add url', `
       <input type="text" name="url" placeholder="url" required>
       <input type="text" name="title" placeholder="title">
       <button type="submit">add</button>
+    </form>
+  </main>
+`);
+
+export const Delete = ({ title, filename }: { title: string, filename: string }) => Layout('delete url', `
+  <main>
+    <em>are you sure you want to delete <strong>${title}</strong>?</em>
+    <form action="/delete/${filename}" method="post">
+      <button type="submit">delete</button>
+      <a class="btn" href="/">
+        cancel
+      </a>
     </form>
   </main>
 `);
