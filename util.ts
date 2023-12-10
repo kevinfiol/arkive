@@ -1,3 +1,6 @@
+import { walk } from 'std/fs/mod.ts';
+import { resolve } from 'std/path/mod.ts';
+
 export function createSlug(text = '') {
   const lines = text.split('\n');
 
@@ -38,4 +41,33 @@ export async function fetchDocumentTitle(url: string) {
   }
 
   return { data, error };
-};
+}
+
+export async function getDirectorySize(path: string) {
+  let size = 0;
+
+  for await (const file of walk(resolve(path))) {
+    if (file.isFile) {
+      const stats = await Deno.stat(file.path);
+      size += stats.size;
+    }
+  }
+
+  return formatBytes(size);
+}
+
+function formatBytes(bytes: number): string {
+  const kb = 1024;
+  const mb = kb * 1024;
+  const gb = mb * 1024;
+
+  if (bytes < kb) {
+    return bytes + ' B';
+  } else if (bytes < mb) {
+    return (bytes / kb).toFixed(2) + ' KB';
+  } else if (bytes < gb) {
+    return (bytes / mb).toFixed(2) + ' MB';
+  } else {
+    return (bytes / gb).toFixed(2) + ' GB';
+  }
+}

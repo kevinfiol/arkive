@@ -1,4 +1,4 @@
-import type { FileTuple } from './main.ts';
+import { FileTuple, MONOLITH_OPTIONS } from './main.ts';
 
 function _if(condition: unknown, template: string) {
   return condition ? template : '';
@@ -30,9 +30,27 @@ const Layout = (title: string, content: string) => `
   </html>
 `;
 
-export const Home = ({ files }: { files: Array<FileTuple> }) => Layout('arkive', `
+const MonolithOptions = () => `
+  <ul>
+    ${_forEach(Object.entries(MONOLITH_OPTIONS), ([name, opt]) => `
+      <div>
+        <label for="${name}">
+          <span>${opt.label}</span>
+          <input
+            type="checkbox"
+            name="${name}"
+            id="${name}"
+          >
+        </label>
+      </div>
+    `)}
+  </ul>
+`;
+
+export const Home = ({ files, size }: { files: Array<FileTuple>, size: string }) => Layout('arkive', `
   <main>
     <h1>arkive</h1>
+    <small>${size}</small>
     <a href="/add">add</a>
     <ul>
       ${_forEach<FileTuple>(files, ([filename, title]) => `
@@ -51,6 +69,7 @@ export const Add = () => Layout('add url', `
     <form action="/add" method="post">
       <input type="text" name="url" placeholder="url" required>
       <input type="text" name="title" placeholder="title">
+      ${MonolithOptions()}
       <button type="submit">add</button>
     </form>
   </main>
