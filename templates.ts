@@ -1,4 +1,4 @@
-import { FileTuple, MONOLITH_OPTIONS } from './main.ts';
+import { type ArchivePage, MONOLITH_OPTIONS } from './main.ts';
 
 function _if(condition: unknown, template: string) {
   return condition ? template : '';
@@ -47,13 +47,13 @@ const MonolithOptions = () => `
   </ul>
 `;
 
-export const Home = ({ files, size }: { files: Array<FileTuple>, size: string }) => Layout('arkive', `
+export const Home = ({ pages, size }: { files: Array<ArchivePage>, size: string }) => Layout('arkive', `
   <main>
     <h1>arkive</h1>
     <small>${size}</small>
     <a href="/add">add</a>
     <ul>
-      ${_forEach<FileTuple>(files, ([filename, title]) => `
+      ${_forEach<ArchivePage>(pages, (page) => `
         <li>
           <a href="/archive/${filename}">${title}</a>
           <a href="/delete/${filename}">delete</a>
@@ -63,7 +63,7 @@ export const Home = ({ files, size }: { files: Array<FileTuple>, size: string })
   </main>
 `);
 
-export const Add = () => Layout('add url', `
+export const Add = ({ error = '' } = {}) => Layout('add url', `
   <main>
     <h1>add url</h1>
     <form action="/add" method="post">
@@ -72,7 +72,13 @@ export const Add = () => Layout('add url', `
       ${MonolithOptions()}
       <button type="submit">add</button>
     </form>
+    ${_if(error !== '', `
+      <figure class="error">
+        ${error}
+      </figure>
+    `)}
   </main>
+  <script defer src="./add.js"></script>
 `);
 
 export const Delete = ({ title, filename }: { title: string, filename: string }) => Layout('delete url', `

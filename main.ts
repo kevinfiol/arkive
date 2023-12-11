@@ -8,6 +8,7 @@ import { createSlug, fetchDocumentTitle, getDirectorySize } from './util.ts';
 import { serveStatic } from './middleware/serveStatic.ts';
 
 export type FileTuple = [string, string];
+export type ArchivePage = { title: string, url: string }''
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -26,14 +27,15 @@ export const MONOLITH_OPTIONS = {
 await load({ export: true });
 
 const SERVER_PORT = Deno.env.get('SERVER_PORT') ?? 8000;
-const STATIC_ROOT = './static';
-const ARCHIVE_PATH = resolve('./_archive');
-const DB_PATH = resolve('./db');
+const DATA_PATH = resolve('./data');
+const STATIC_ROOT = resolve('./static');
+const ARCHIVE_PATH = join(DATA_PATH, './archive');
+const DB_PATH = join(DATA_PATH, './db');
 
-// create KV db folder if it doesn't exist
-if (!existsSync(DB_PATH)) {
-  Deno.mkdirSync(DB_PATH);
-}
+// create directories
+[DATA_PATH, ARCHIVE_PATH, DB_PATH].forEach((path) => {
+  if (!existsSync(path)) Deno.mkdirSync(path);
+});
 
 const KV = await Deno.openKv(join(DB_PATH, 'store'));
 const app = new Router();
@@ -47,7 +49,7 @@ app.get('/archive/*.html', async (req) => {
 
   const url = new URL(req.url);
   const filename = url.pathname.replace(/^\/archive\//, '');
-  const filepath = resolve(`./_archive/${filename}`);
+  const filepath = join(ARCHIVE_PATH, filename);
 
   if (existsSync(filepath, { isFile: true, isReadable: true })) {
     const file = await Deno.open(filepath, { read: true });
@@ -66,14 +68,14 @@ app.get('/archive/*.html', async (req) => {
 
 app.get('/', async () => {
   const size = await getDirectorySize(ARCHIVE_PATH);
-  const files: FileTuple[] = [];
-  const entries = KV.list<string>({ prefix: ['articles'] });
+  const pages: ArchivePage[] = [];
+  const entries = KV.list<ArchivePage>({ prefix: ['articles'] });
 
   for await (const entry of entries) {
-    files.push([entry.key[1] as string, entry.value]);
+    pages.push(entry.value);
   }
 
-  const html = Home({ files, size });
+  const html = Home({ pages, size });
 
   return new Response(html, {
     status: 200,
@@ -113,7 +115,7 @@ app.post('/delete/:filename', async (_req, params) => {
 
   try {
     await KV.delete(['articles', filename]);
-    await Deno.remove(resolve(`./_archive/${filename}`));
+    await Deno.remove(join(ARCHIVE_PATH, filename));
     headers.set('location', '/');
   } catch (e) {
     contents = '500';
@@ -128,11 +130,10 @@ app.post('/delete/:filename', async (_req, params) => {
 });
 
 app.post('/add', async (req) => {
-  const contents = '302';
-  const status = 302;
+  let contents = '302';
+  let status = 302;
   const headers = new Headers({
-    'content-type': 'text/html',
-    'location': '/',
+    'content-type': 'text/html'
   });
 
   const monolithOpts = [];
@@ -155,28 +156,24 @@ app.post('/add', async (req) => {
     title = docTitle.data;
   }
 
-  if (!existsSync(ARCHIVE_PATH)) {
-    Deno.mkdirSync(ARCHIVE_PATH);
-  }
-
   const filename = createSlug(title) + '-' + (Date.now().toString()) + '.html';
   const path = join(ARCHIVE_PATH, filename);
 
   const cmd = new Deno.Command('monolith', {
-    args: [`--output=${path}`, ...monolithOpts, url],
-    stdout: 'piped',
+    args: [`--output=${path}`, ...monolithOpts, url]
   });
 
-  await cmd.output();
+  const output = await cmd.output();
 
-  // https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
-  // const child = cmd.spawn();
-  // const stream = new WritableStream();
-  // stream.
-  // child.stdout.pipeTo(stream);
-
-  // save to db
-  await KV.set(['articles', filename], title);
+  if (!output.success) {
+    contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
+    status = 500;
+  } else {
+    // save to db
+    await KV.set(['articles', filename], { title, url });
+    // redirect to homepage
+    headers.set('location', '/');
+  }
 
   return new Response(contents, {
     status,
