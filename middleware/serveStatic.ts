@@ -6,6 +6,7 @@ const MIMES: Record<string, string> = {
   'js': 'text/javascript',
   'css': 'text/css',
   'ico': 'image/vnd.microsoft.icon',
+  'svg': 'image/svg+xml'
 };
 
 export const serveStatic = (root: string) => {

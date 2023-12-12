@@ -4,11 +4,16 @@ import { existsSync } from 'std/fs/mod.ts';
 import { join, resolve } from 'std/path/mod.ts';
 import { Router } from './router.ts';
 import { Add, Delete, Home } from './templates.ts';
-import { createSlug, fetchDocumentTitle, getDirectorySize } from './util.ts';
+import { createSlug, fetchDocumentTitle, getSize } from './util.ts';
 import { serveStatic } from './middleware/serveStatic.ts';
 
-export type FileTuple = [string, string];
-export type ArchivePage = { title: string, url: string }''
+export type ArchivePage = {
+  id: string,
+  title: string;
+  url: string;
+  filename: string;
+  size: string;
+};
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -67,7 +72,7 @@ app.get('/archive/*.html', async (req) => {
 });
 
 app.get('/', async () => {
-  const size = await getDirectorySize(ARCHIVE_PATH);
+  const size = await getSize(ARCHIVE_PATH);
   const pages: ArchivePage[] = [];
   const entries = KV.list<ArchivePage>({ prefix: ['articles'] });
 
@@ -92,29 +97,45 @@ app.get('/add', () => {
   });
 });
 
-app.get('/delete/:filename', async (_req, params) => {
-  const filename = params.filename as string ?? '';
-  const entry = await KV.get<string>(['articles', filename]);
-  const title = entry.value as string;
+app.get('/delete/:id', async (_req, params) => {
+  let contents;
+  let status;
+  const id = params.id as string ?? '';
+  const entry = await KV.get<ArchivePage>(['articles', id]);
 
-  const html = Delete({ title, filename });
-  return new Response(html, {
-    status: 200,
+  if (entry.value === null) {
+    contents = '404';
+    status = 404;
+  } else {
+    const { title } = entry.value;
+    contents = Delete({ id, title });
+    status = 200;
+  }
+
+  return new Response(contents, {
+    status: status,
     headers: { 'content-type': 'text/html' },
   });
 });
 
-app.post('/delete/:filename', async (_req, params) => {
+app.post('/delete/:id', async (_req, params) => {
   let contents = '302';
   let status = 302;
   const headers = new Headers({
     'content-type': 'text/html',
   });
 
-  const filename = params.filename as string ?? '';
+  const id = params.id as string ?? '';
 
   try {
-    await KV.delete(['articles', filename]);
+    const entry = await KV.get<ArchivePage>(['articles', id]);
+
+    if (entry.value === null) {
+      throw new Error('Page with that ID does not exist.');
+    }
+
+    const { filename } = entry.value;
+    await KV.delete(['articles', id]);
     await Deno.remove(join(ARCHIVE_PATH, filename));
     headers.set('location', '/');
   } catch (e) {
@@ -169,8 +190,11 @@ app.post('/add', async (req) => {
     contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
     status = 500;
   } else {
+    const size = await getSize(path);
+    const uuid = crypto.randomUUID();
+
     // save to db
-    await KV.set(['articles', filename], { title, url });
+    await KV.set(['articles', uuid], { id: uuid, filename, title, url, size });
     // redirect to homepage
     headers.set('location', '/');
   }

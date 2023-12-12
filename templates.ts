@@ -21,7 +21,7 @@ const Layout = (title: string, content: string) => `
     <meta name="description" content="personal article archive" >
     <link rel="stylesheet" href="/main.css">
     <title>
-      ${title || 'arkive'}
+      ${title || 'Archive'}
     </title>
   </head>
   <body>
@@ -33,7 +33,7 @@ const Layout = (title: string, content: string) => `
 const MonolithOptions = () => `
   <ul>
     ${_forEach(Object.entries(MONOLITH_OPTIONS), ([name, opt]) => `
-      <div>
+      <li>
         <label for="${name}">
           <span>${opt.label}</span>
           <input
@@ -42,53 +42,83 @@ const MonolithOptions = () => `
             id="${name}"
           >
         </label>
-      </div>
+      </li>
     `)}
   </ul>
 `;
 
-export const Home = ({ pages, size }: { files: Array<ArchivePage>, size: string }) => Layout('arkive', `
+export const Home = ({ pages, size }: { pages: Array<ArchivePage>, size: string }) => Layout('Archive', `
   <main>
-    <h1>arkive</h1>
-    <small>${size}</small>
-    <a href="/add">add</a>
-    <ul>
+    <header>
+      <div class="info">
+        Disk Usage: ${size}
+      </div>
+    </header>
+    <section class="controls">
+      <a href="/add">Save New Page</a>
+      <div class="input-group">
+        <input type="text" placeholder="Type to Search..." id="search-bar" />
+      </div>
+    </section>
+    <section class="articles">
       ${_forEach<ArchivePage>(pages, (page) => `
-        <li>
-          <a href="/archive/${filename}">${title}</a>
-          <a href="/delete/${filename}">delete</a>
-        </li>
+        <article class="article">
+          <header>
+            <a href="/archive/${page.filename}">${page.title}</a>
+          </header>
+          <div class="info">
+            <small><a href="${page.url}">${page.url}</a></small>
+          </div>
+          <div class="info">
+            <small>${page.size}</small>
+            <small>
+              <a href="/delete/${page.id}">
+                delete
+              </a>
+            </small>
+          </div>
+        </article>
       `)}
-    </ul>
+    </section>
   </main>
+  <script defer src="home.js"></script>
 `);
 
-export const Add = ({ error = '' } = {}) => Layout('add url', `
+export const Add = ({ error = '' } = {}) => Layout('Save New Page', `
   <main>
-    <h1>add url</h1>
+    <a href="/">← Back To Archive</a>
+    <p>Enter a page URL and Title (optional) to archive it. Use the checkboxes configure the archiver.</p>
     <form action="/add" method="post">
-      <input type="text" name="url" placeholder="url" required>
-      <input type="text" name="title" placeholder="title">
+      <div class="input-group">
+        <input type="text" name="url" placeholder="URL" maxlength="200" required>
+      </div>
+      <div class="input-group">
+        <input type="text" name="title" placeholder="Title (Optional)" maxlength="100">
+      </div>
       ${MonolithOptions()}
-      <button type="submit">add</button>
+      ${_if(error !== '', `
+        <figure class="error">
+          ${error}
+        </figure>
+      `)}
+      <button type="submit">Save New Page</button>
     </form>
-    ${_if(error !== '', `
-      <figure class="error">
-        ${error}
-      </figure>
-    `)}
   </main>
   <script defer src="./add.js"></script>
 `);
 
-export const Delete = ({ title, filename }: { title: string, filename: string }) => Layout('delete url', `
+export const Delete = ({ id, title }: { id: string, title: string }) => Layout('Delete Page', `
   <main>
-    <em>are you sure you want to delete <strong>${title}</strong>?</em>
-    <form action="/delete/${filename}" method="post">
-      <button type="submit">delete</button>
-      <a class="btn" href="/">
-        cancel
-      </a>
+    <a href="/">← Back To Archive</a>
+    <p>
+      <em>Are you sure you want to delete <strong>${title}</strong>?</em>
+    </p>
+    <form action="/delete/${id}" method="post">
+      <div class="input-group">
+        <button type="submit">
+          Delete
+        </button>
+      </div>
     </form>
   </main>
 `);

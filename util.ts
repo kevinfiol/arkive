@@ -43,13 +43,19 @@ export async function fetchDocumentTitle(url: string) {
   return { data, error };
 }
 
-export async function getDirectorySize(path: string) {
+export async function getSize(path: string) {
   let size = 0;
+  const absPath = resolve(path);
+  const info = await Deno.stat(absPath);
 
-  for await (const file of walk(resolve(path))) {
-    if (file.isFile) {
-      const stats = await Deno.stat(file.path);
-      size += stats.size;
+  if (info.isFile) {
+    size = info.size;
+  } else if (info.isDirectory) {
+    for await (const file of walk(absPath)) {
+      if (file.isFile) {
+        const stats = await Deno.stat(file.path);
+        size += stats.size;
+      }
     }
   }
 
