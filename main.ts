@@ -43,6 +43,16 @@ const DB_PATH = join(DATA_PATH, './db');
 });
 
 const KV = await Deno.openKv(join(DB_PATH, 'store'));
+let initialCount = await KV.get<bigint>(['count']).then((entry) => entry.value);
+
+if (initialCount === null) {
+  // initialize the count if it doesn't exist
+  initialCount = BigInt(0);
+  await KV.set(['count'], new Deno.KvU64(initialCount));
+}
+
+console.log({initialCount});
+
 const app = new Router();
 
 app.get('*', serveStatic(STATIC_ROOT));
@@ -187,16 +197,38 @@ app.post('/add', async (req) => {
   const output = await cmd.output();
 
   if (!output.success) {
+    console.error(output);
     contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
     status = 500;
   } else {
     const size = await getSize(path);
     const uuid = crypto.randomUUID();
+    const incrementBy = BigInt(1);
 
-    // save to db
-    await KV.set(['articles', uuid], { id: uuid, filename, title, url, size });
-    // redirect to homepage
-    headers.set('location', '/');
+    const archivePage = {
+      id: uuid,
+      filename,
+      title,
+      url,
+      size
+    };
+
+    try {
+      const result = await KV.atomic()
+        .set(['articles', uuid], archivePage)
+        .sum(['count'], incrementBy)
+        .commit()
+
+      if (!result.ok) {
+        throw new Error('KV Error.');
+      }
+
+      headers.set('location', '/');
+    } catch (e) {
+      console.error(e);
+      contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
+      status = 500;
+    }
   }
 
   return new Response(contents, {
