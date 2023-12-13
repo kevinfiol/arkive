@@ -66,6 +66,9 @@ export async function Database(path: string) {
         error = undefined;
 
       try {
+        // let ordered = await KV.get<string[]>(ORDERED);
+        // ordered = ordered.value ?? [];
+
         const result = await KV.atomic()
           .set([...ARTICLES, page.id], page)
           .sum(COUNT, INCREMENT)
