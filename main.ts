@@ -53,8 +53,8 @@ app.get('/archive/*.html', async (req) => {
     contents = file.readable;
     headers.set('content-type', 'text/html');
   } else {
-    contents = '404: File does not exist or is not readable.';
     status = 404;
+    contents = '404: File does not exist or is not readable.';
   }
 
   return new Response(contents, {
@@ -100,8 +100,8 @@ app.get('/delete/:id', async (_req, params) => {
     status = 404;
   } else {
     const { title } = page.data;
-    contents = Delete({ id, title });
     status = 200;
+    contents = Delete({ id, title });
   }
 
   return new Response(contents, {
@@ -136,8 +136,8 @@ app.post('/delete/:id', async (_req, params) => {
     await Deno.remove(join(ARCHIVE_PATH, filename));
     headers.set('location', '/');
   } catch (e) {
-    contents = '500';
     status = 500;
+    contents = '500';
     console.error(e);
   }
 
@@ -186,10 +186,10 @@ app.post('/add', async (req) => {
 
   if (!output.success) {
     console.error(output);
+    status = 500;
     contents = Add({
       error: 'Unable to save page. Please try again or check the URL.',
     });
-    status = 500;
   } else {
     const size = await getSize(path);
     const id = crypto.randomUUID();
@@ -205,10 +205,10 @@ app.post('/add', async (req) => {
       headers.set('location', '/');
     } catch (e) {
       console.error(e);
+      status = 500;
       contents = Add({
         error: 'Unable to save page. Please try again or check the URL.',
       });
-      status = 500;
     }
   }
 
