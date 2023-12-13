@@ -1,4 +1,5 @@
-import { type ArchivePage, MONOLITH_OPTIONS } from './main.ts';
+import type { ArchivePage } from './types.ts';
+import { MONOLITH_OPTIONS } from './main.ts';
 
 function _if(condition: unknown, template: string) {
   return condition ? template : '';
@@ -47,11 +48,12 @@ const MonolithOptions = () => `
   </ul>
 `;
 
-export const Home = ({ pages, size }: { pages: Array<ArchivePage>, size: string }) => Layout('Archive', `
+export const Home = ({ pages, size, count }: { pages: Array<ArchivePage>, size: string, count: number }) => Layout('Archive', `
   <main>
     <header>
-      <div class="info">
-        Disk Usage: ${size}
+      <div class="header-info">
+        <span>Disk Usage: ${size}</span>
+        <span>${count} page${count === 1 ? '' : 's'} saved</span>
       </div>
     </header>
     <section class="controls">

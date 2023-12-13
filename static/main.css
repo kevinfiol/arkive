@@ -106,7 +106,7 @@ button:not([disabled]):hover {
 }
 
 .article > :where(header, div) {
-  max-width: 700px;
+  max-width: 100%;
   max-height: 72px;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -126,6 +126,13 @@ button:not([disabled]):hover {
 
 .info a:hover {
   text-decoration: underline;
+}
+
+.header-info {
+  padding: 0.15rem 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
 }
 
 .error {

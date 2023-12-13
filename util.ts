@@ -21,9 +21,14 @@ export function createSlug(text = '') {
 export async function fetchDocumentTitle(url: string) {
   let data = '', error = undefined;
 
+  // add protocol if it doesn't exist
+  if (!/^https?:\/\//.test(url)) {
+    url = 'https://' + url;
+  }
+
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) throw Error(res.statusText);
 
     const text = await res.text();
     const match = text.match(/<title>\s*(.*?)\s*<\/title>/);

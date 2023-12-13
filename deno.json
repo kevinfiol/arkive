@@ -5,7 +5,8 @@
     "start": "deno run --allow-env --allow-sys --allow-net --unstable --allow-read --allow-run --allow-write main.ts"
   },
   "imports": {
-    "std/": "https://deno.land/std@0.208.0/"
+    "std/": "https://deno.land/std@0.208.0/",
+    "uFuzzy": "https://esm.sh/@leeoniya/ufuzzy@1.0.13"
   },
   "lint": {
     "include": ["*.ts"],

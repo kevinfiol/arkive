@@ -1,4 +1,3 @@
-/// <reference lib="deno.unstable" />
 import { load } from 'std/dotenv/mod.ts';
 import { existsSync } from 'std/fs/mod.ts';
 import { join, resolve } from 'std/path/mod.ts';
@@ -6,14 +5,7 @@ import { Router } from './router.ts';
 import { Add, Delete, Home } from './templates.ts';
 import { createSlug, fetchDocumentTitle, getSize } from './util.ts';
 import { serveStatic } from './middleware/serveStatic.ts';
-
-export type ArchivePage = {
-  id: string,
-  title: string;
-  url: string;
-  filename: string;
-  size: string;
-};
+import { Database } from './db.ts';
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -42,17 +34,7 @@ const DB_PATH = join(DATA_PATH, './db');
   if (!existsSync(path)) Deno.mkdirSync(path);
 });
 
-const KV = await Deno.openKv(join(DB_PATH, 'store'));
-let initialCount = await KV.get<bigint>(['count']).then((entry) => entry.value);
-
-if (initialCount === null) {
-  // initialize the count if it doesn't exist
-  initialCount = BigInt(0);
-  await KV.set(['count'], new Deno.KvU64(initialCount));
-}
-
-console.log({initialCount});
-
+const DB = await Database(DB_PATH);
 const app = new Router();
 
 app.get('*', serveStatic(STATIC_ROOT));
@@ -83,14 +65,14 @@ app.get('/archive/*.html', async (req) => {
 
 app.get('/', async () => {
   const size = await getSize(ARCHIVE_PATH);
-  const pages: ArchivePage[] = [];
-  const entries = KV.list<ArchivePage>({ prefix: ['articles'] });
+  const pages = await DB.getPages();
+  const count = await DB.getCount();
 
-  for await (const entry of entries) {
-    pages.push(entry.value);
-  }
-
-  const html = Home({ pages, size });
+  const html = Home({
+    size,
+    pages: pages.data,
+    count: count.data,
+  });
 
   return new Response(html, {
     status: 200,
@@ -111,13 +93,13 @@ app.get('/delete/:id', async (_req, params) => {
   let contents;
   let status;
   const id = params.id as string ?? '';
-  const entry = await KV.get<ArchivePage>(['articles', id]);
+  const page = await DB.getPage(id);
 
-  if (entry.value === null) {
+  if (page.data === undefined) {
     contents = '404';
     status = 404;
   } else {
-    const { title } = entry.value;
+    const { title } = page.data;
     contents = Delete({ id, title });
     status = 200;
   }
@@ -138,14 +120,19 @@ app.post('/delete/:id', async (_req, params) => {
   const id = params.id as string ?? '';
 
   try {
-    const entry = await KV.get<ArchivePage>(['articles', id]);
+    const page = await DB.getPage(id);
 
-    if (entry.value === null) {
-      throw new Error('Page with that ID does not exist.');
+    if (page.data === undefined) {
+      throw Error('Page with that ID does not exist.');
     }
 
-    const { filename } = entry.value;
-    await KV.delete(['articles', id]);
+    const { filename } = page.data;
+    const result = await DB.deletePage(id);
+
+    if (!result.ok) {
+      throw result.error;
+    }
+
     await Deno.remove(join(ARCHIVE_PATH, filename));
     headers.set('location', '/');
   } catch (e) {
@@ -164,7 +151,7 @@ app.post('/add', async (req) => {
   let contents = '302';
   let status = 302;
   const headers = new Headers({
-    'content-type': 'text/html'
+    'content-type': 'text/html',
   });
 
   const monolithOpts = [];
@@ -187,46 +174,47 @@ app.post('/add', async (req) => {
     title = docTitle.data;
   }
 
-  const filename = createSlug(title) + '-' + (Date.now().toString()) + '.html';
+  const timestamp = Date.now();
+  const filename = createSlug(title) + '-' + (timestamp.toString()) + '.html';
   const path = join(ARCHIVE_PATH, filename);
 
   const cmd = new Deno.Command('monolith', {
-    args: [`--output=${path}`, ...monolithOpts, url]
+    args: [`--output=${path}`, ...monolithOpts, url],
   });
 
   const output = await cmd.output();
 
   if (!output.success) {
     console.error(output);
-    contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
+    contents = Add({
+      error: 'Unable to save page. Please try again or check the URL.',
+    });
     status = 500;
   } else {
     const size = await getSize(path);
     const uuid = crypto.randomUUID();
-    const incrementBy = BigInt(1);
 
     const archivePage = {
       id: uuid,
       filename,
       title,
       url,
-      size
+      size,
     };
 
     try {
-      const result = await KV.atomic()
-        .set(['articles', uuid], archivePage)
-        .sum(['count'], incrementBy)
-        .commit()
+      const result = await DB.addPage(archivePage);
 
       if (!result.ok) {
-        throw new Error('KV Error.');
+        throw result.error;
       }
 
       headers.set('location', '/');
     } catch (e) {
       console.error(e);
-      contents = Add({ error: 'Unable to save page. Please try again or check the URL.' });
+      contents = Add({
+        error: 'Unable to save page. Please try again or check the URL.',
+      });
       status = 500;
     }
   }
