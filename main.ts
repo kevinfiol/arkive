@@ -192,18 +192,11 @@ app.post('/add', async (req) => {
     status = 500;
   } else {
     const size = await getSize(path);
-    const uuid = crypto.randomUUID();
-
-    const archivePage = {
-      id: uuid,
-      filename,
-      title,
-      url,
-      size,
-    };
+    const id = crypto.randomUUID();
+    const page = { id, filename, title, url, size };
 
     try {
-      const result = await DB.addPage(archivePage);
+      const result = await DB.addPage(page);
 
       if (!result.ok) {
         throw result.error;
