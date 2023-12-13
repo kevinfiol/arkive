@@ -4,4 +4,5 @@ export interface ArchivePage {
   url: string;
   filename: string;
   size: string;
+  timestamp: number;
 }

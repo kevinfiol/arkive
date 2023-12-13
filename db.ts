@@ -5,6 +5,7 @@ import { join } from 'std/path/mod.ts';
 const DB_FILENAME = 'store';
 const ARTICLES = ['articles'];
 const COUNT = ['count'];
+const ORDERED = ['ordered'];
 
 const INCREMENT = 1n;
 const DECREMENT = 0xffffffffffffffffn; // weird KV beta workaround
@@ -18,7 +19,6 @@ export async function Database(path: string) {
 
       try {
         const entry = await KV.get<bigint>(COUNT);
-        if (entry.value === null) throw Error('KV: count not set.');
         data = Number(entry.value);
       } catch (e) {
         error = e;

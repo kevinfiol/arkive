@@ -193,7 +193,7 @@ app.post('/add', async (req) => {
   } else {
     const size = await getSize(path);
     const id = crypto.randomUUID();
-    const page = { id, filename, title, url, size };
+    const page = { id, filename, title, url, size, timestamp };
 
     try {
       const result = await DB.addPage(page);
