@@ -53,7 +53,7 @@ export const Home = ({ pages, size, count }: { pages: Array<ArchivePage>, size: 
     <header>
       <div class="header-info">
         <span>Disk Usage: ${size}</span>
-        <span>${count} page${count === 1 ? '' : 's'} saved</span>
+        <span>Showing ${count < 50 ? count : '50'} of ${count} saved pages</span>
       </div>
     </header>
     <section class="controls">

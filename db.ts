@@ -47,8 +47,13 @@ export async function Database(path: string) {
         error = undefined;
 
       try {
+        const maybeSet = await KV.get<Set<string>>(ORDERED);
+        const ordered = maybeSet.value ?? new Set<string>();
+        ordered.delete(id);
+
         const result = await KV.atomic()
           .delete([...ARTICLES, id])
+          .set(ORDERED, ordered)
           .sum(COUNT, DECREMENT)
           .commit();
 
@@ -66,11 +71,13 @@ export async function Database(path: string) {
         error = undefined;
 
       try {
-        // let ordered = await KV.get<string[]>(ORDERED);
-        // ordered = ordered.value ?? [];
+        const maybeSet = await KV.get<Set<string>>(ORDERED);
+        const ordered = maybeSet.value ?? new Set<string>();
+        ordered.add(page.id);
 
         const result = await KV.atomic()
           .set([...ARTICLES, page.id], page)
+          .set(ORDERED, ordered)
           .sum(COUNT, INCREMENT)
           .commit();
 
@@ -88,12 +95,23 @@ export async function Database(path: string) {
       let error = undefined;
 
       try {
-        const entries = KV.list<ArchivePage>({
-          prefix: ARTICLES,
-        });
+        const ordered = await KV.get<Set<string>>(ORDERED);
 
-        for await (const entry of entries) {
-          data.push(entry.value);
+        if (ordered.value !== null) {
+          let i = 0;
+          const keys: Array<[string, string]> = [];
+
+          for (const id of ordered.value) {
+            if (i > 50) break;
+            keys.push(['articles', id]);
+            i += 1;
+          }
+
+          const entries = await KV.getMany<ArchivePage[]>(keys);
+
+          for await (const entry of entries) {
+            if (entry.value !== null) data.push(entry.value); 
+          }
         }
       } catch (e) {
         error = e;
