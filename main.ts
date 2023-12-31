@@ -235,6 +235,29 @@ app.post('/add', async (req) => {
   });
 });
 
+app.post('/edit', async (req) => {
+  let contents = 'OK';
+  let status = 200;
+
+  const form = await req.formData();
+  const url = form.get('url') as string;
+  const title = form.get('title') as string;
+  const filename = form.get('filename') as string;
+
+  try {
+    await DB.editPage({ filename, title, url });
+  } catch (e) {
+    contents = '500';
+    status = 500;
+    console.error(e);
+  }
+
+  return new Response(contents, {
+    status,
+    headers: { 'content-type': 'text/plain' }
+  })
+});
+
 app.post('/search', async (req) => {
   const body = await req.json();
   console.log({body});

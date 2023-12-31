@@ -63,16 +63,41 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
       </div>
     </section>
     <section class="articles">
+      <dialog id="edit-dialog">
+        <form id="edit-form" method="dialog">
+          <input type="text" placeholder="Title" name="title" required />
+          <input type="text" placeholder="URL" name="url" required />
+          <div class="input-group">
+            <button id="submit-dialog">Save</button>
+            <button id="close-dialog">Cancel</button>
+          </div>
+          <figure class="error -hidden" id="edit-error">
+          </figure>
+        </form>
+      </dialog>
+
       ${_forEach<Page>(pages, (page) => `
         <article class="article">
           <header>
-            <a href="/archive/${page.filename}">${page.title}</a>
+            <a href="/archive/${page.filename}" class="title">${page.title}</a>
           </header>
           <div class="info">
-            <small><a href="${page.url}">${page.url}</a></small>
+            <small><a href="${page.url}" class="url">${page.url}</a></small>
           </div>
           <div class="info">
             <small>${page.size}</small>
+            <small>
+              <a
+                data-filename="${page.filename}"
+                data-title="${page.title}"
+                data-url="${page.url}"
+                class="link-btn edit-button"
+                role="button"
+                onclick="window.openEditDialog(this)"
+              >
+                edit
+              </a>
+            </small>
             <small>
               <a href="/delete/${page.filename}">
                 delete

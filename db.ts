@@ -159,6 +159,28 @@ export async function Database(path: string) {
       return { ok, error };
     },
 
+    async editPage({ filename, title, url }: { filename: string; title: string; url: string; }) {
+      let ok = true;
+      let error = undefined;
+
+      try {
+        const key = [...PAGE_DATA, filename];
+        const result = await KV.get<Page>(key);
+        if (result.value === null) throw Error('KV: Edit Page Failed; does not exist');
+        const page: Page = { ...result.value, title, url };
+        await KV.set(key, page);
+
+        // need to bust cache
+        const now = (new Date()).toISOString();
+        await KV.set(MOD_TIME, now);
+      } catch (e) {
+        error = e;
+        ok = false;
+      }
+
+      return { ok, error };
+    }
+
     // async getPages() {
     //   const data: ArchivePage[] = [];
     //   let error = undefined;

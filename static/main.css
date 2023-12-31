@@ -29,6 +29,11 @@ body {
   padding: 4em 1em;
 }
 
+dialog {
+  background-color: var(--bg-color-2);
+  border: 2px solid var(--border-color);
+}
+
 h1,
 h2,
 strong {
@@ -136,9 +141,18 @@ button:not([disabled]):hover {
 }
 
 .error {
+  color: var(--color);
   border: 1px solid var(--p-color);
   margin: 1rem 0;
   padding: 1rem;
   font-family: sans-serif;
   font-weight: bolder;
+}
+
+.error.-hidden {
+  display: none;
+}
+
+.link-btn {
+  cursor: pointer;
 }
