@@ -3,9 +3,10 @@ import { existsSync } from 'std/fs/mod.ts';
 import { join, resolve } from 'std/path/mod.ts';
 import { Router } from './router.ts';
 import { Add, Delete, Home } from './templates.ts';
-import { createSlug, fetchDocumentTitle, getSize } from './util.ts';
+import { createSlug, fetchDocumentTitle, getSize, parseDirectory } from './util.ts';
 import { serveStatic } from './middleware/serveStatic.ts';
 import { Database } from './db.ts';
+import { Page } from './types.ts';
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -64,14 +65,35 @@ app.get('/archive/*.html', async (req) => {
 });
 
 app.get('/', async () => {
-  const size = await getSize(ARCHIVE_PATH);
-  const pages = await DB.getPages();
-  const count = await DB.getCount();
+  const info = await Deno.stat(ARCHIVE_PATH);
+  const date = info.mtime ?? new Date();
+  const modifiedTime = date.toISOString();
+
+  let pages = [];
+  let size = '0 B';
+  const { data: hasChanged } = await DB.checkModified(modifiedTime);
+
+  if (hasChanged) {
+    const directory = await parseDirectory(ARCHIVE_PATH);
+    const { data: pageData } = await DB.getPageData(directory.files);
+
+    size = directory.size;
+    for (const file of directory.files) {
+      pages.push(pageData[file.name]);
+    }
+
+    // update cache
+    await DB.setCache({ pages, size: directory.size });
+  } else {
+    const { data: cache } = await DB.getCache();
+    pages = cache.pages;
+    size = cache.size;
+  }
 
   const html = Home({
     size,
-    pages: pages.data,
-    count: count.data,
+    pages,
+    count: pages.length
   });
 
   return new Response(html, {
@@ -89,11 +111,11 @@ app.get('/add', () => {
   });
 });
 
-app.get('/delete/:id', async (_req, params) => {
+app.get('/delete/:filename', async (_req, params) => {
   let contents;
   let status;
-  const id = params.id as string ?? '';
-  const page = await DB.getPage(id);
+  const filename = params.filename as string ?? '';
+  const page = await DB.getPage(filename);
 
   if (page.data === undefined) {
     contents = '404';
@@ -101,7 +123,7 @@ app.get('/delete/:id', async (_req, params) => {
   } else {
     const { title } = page.data;
     status = 200;
-    contents = Delete({ id, title });
+    contents = Delete({ filename, title });
   }
 
   return new Response(contents, {
@@ -110,28 +132,24 @@ app.get('/delete/:id', async (_req, params) => {
   });
 });
 
-app.post('/delete/:id', async (_req, params) => {
+app.post('/delete/:filename', async (_req, params) => {
   let contents = '302';
   let status = 302;
   const headers = new Headers({
     'content-type': 'text/html',
   });
 
-  const id = params.id as string ?? '';
+  const filename = params.filename as string ?? '';
 
   try {
-    const page = await DB.getPage(id);
+    const { data: page } = await DB.getPage(filename);
 
-    if (page.data === undefined) {
+    if (page === undefined) {
       throw Error('Page with that ID does not exist.');
     }
 
-    const { filename } = page.data;
-    const result = await DB.deletePage(id);
-
-    if (!result.ok) {
-      throw result.error;
-    }
+    const result = await DB.deletePage(filename);
+    if (!result.ok) throw result.error;
 
     await Deno.remove(join(ARCHIVE_PATH, filename));
     headers.set('location', '/');
@@ -175,7 +193,7 @@ app.post('/add', async (req) => {
   }
 
   const timestamp = Date.now();
-  const filename = createSlug(title) + '-' + (timestamp.toString()) + '.html';
+  const filename = (timestamp.toString()) + '-' + createSlug(title) + '.html';
   const path = join(ARCHIVE_PATH, filename);
 
   const cmd = new Deno.Command('monolith', {
@@ -192,8 +210,7 @@ app.post('/add', async (req) => {
     });
   } else {
     const size = await getSize(path);
-    const id = crypto.randomUUID();
-    const page = { id, filename, title, url, size, timestamp };
+    const page = { filename, title, url, size, foo: 1 };
 
     try {
       const result = await DB.addPage(page);
@@ -215,6 +232,15 @@ app.post('/add', async (req) => {
   return new Response(contents, {
     status,
     headers,
+  });
+});
+
+app.post('/search', async (req) => {
+  const body = await req.json();
+  console.log({body});
+
+  return new Response('404', {
+    status: 404
   });
 });
 

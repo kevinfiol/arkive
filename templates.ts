@@ -1,4 +1,4 @@
-import type { ArchivePage } from './types.ts';
+import type { Page } from './types.ts';
 import { MONOLITH_OPTIONS } from './main.ts';
 
 function _if(condition: unknown, template: string) {
@@ -48,7 +48,7 @@ const MonolithOptions = () => `
   </ul>
 `;
 
-export const Home = ({ pages, size, count }: { pages: Array<ArchivePage>, size: string, count: number }) => Layout('Archive', `
+export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string, count: number }) => Layout('Archive', `
   <main>
     <header>
       <div class="header-info">
@@ -63,7 +63,7 @@ export const Home = ({ pages, size, count }: { pages: Array<ArchivePage>, size: 
       </div>
     </section>
     <section class="articles">
-      ${_forEach<ArchivePage>(pages, (page) => `
+      ${_forEach<Page>(pages, (page) => `
         <article class="article">
           <header>
             <a href="/archive/${page.filename}">${page.title}</a>
@@ -74,7 +74,7 @@ export const Home = ({ pages, size, count }: { pages: Array<ArchivePage>, size: 
           <div class="info">
             <small>${page.size}</small>
             <small>
-              <a href="/delete/${page.id}">
+              <a href="/delete/${page.filename}">
                 delete
               </a>
             </small>
@@ -109,13 +109,13 @@ export const Add = ({ error = '' } = {}) => Layout('Save New Page', `
   <script defer src="./add.js"></script>
 `);
 
-export const Delete = ({ id, title }: { id: string, title: string }) => Layout('Delete Page', `
+export const Delete = ({ filename, title }: { filename: string, title: string }) => Layout('Delete Page', `
   <main>
     <a href="/">← Back To Archive</a>
     <p>
       <em>Are you sure you want to delete <strong>${title}</strong>?</em>
     </p>
-    <form action="/delete/${id}" method="post">
+    <form action="/delete/${filename}" method="post">
       <div class="input-group">
         <button type="submit">
           Delete

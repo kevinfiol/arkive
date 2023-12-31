@@ -1,8 +1,14 @@
 (() => {
   const STORAGE_KEY = '$$ARKIVE_OPTS';
 
-  const options = getOpts() ?? {};
   const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  const options = getOpts() ?? {
+    'no-audio': true,
+    'no-frames': true,
+    'isolate': true,
+    'no-metadata': true,
+    'no-video': true,
+  };
 
   // initialize
   for (const el of checkboxes) {

@@ -67,6 +67,24 @@ export async function getSize(path: string) {
   return formatBytes(size);
 }
 
+export async function parseDirectory(path: string) {
+  let size = 0;
+  const files = [];
+  const absPath = resolve(path);
+
+  for await (const file of walk(absPath)) {
+    const ext = file.name.split('.').pop();
+
+    if (file.isFile && ext === 'html') {
+      const stats = await Deno.stat(file.path);
+      size += stats.size;
+      files.push({ name: file.name, size: formatBytes(stats.size) });
+    }
+  }
+
+  return { files, size: formatBytes(size) };
+}
+
 function formatBytes(bytes: number): string {
   const kb = 1024;
   const mb = kb * 1024;
