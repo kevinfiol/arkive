@@ -67,6 +67,14 @@ export async function getSize(path: string) {
   return formatBytes(size);
 }
 
+export function escapeHtml(html: string) {
+  return html.replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\'', '&apos;')
+    .replaceAll('"', '&quot;');
+}
+
 export async function parseDirectory(path: string) {
   let size = 0;
   const files = [];

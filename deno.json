@@ -6,7 +6,8 @@
   },
   "imports": {
     "std/": "https://deno.land/std@0.208.0/",
-    "uFuzzy": "https://esm.sh/@leeoniya/ufuzzy@1.0.13"
+    "uFuzzy": "https://esm.sh/@leeoniya/ufuzzy@1.0.13",
+    "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts"
   },
   "lint": {
     "include": ["*.ts"],

@@ -1,5 +1,6 @@
 import type { Page } from './types.ts';
 import { MONOLITH_OPTIONS } from './main.ts';
+import { escapeHtml } from './util.ts';
 
 function _if(condition: unknown, template: string) {
   return condition ? template : '';
@@ -64,48 +65,55 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
     </section>
     <section class="articles">
       <dialog id="edit-dialog">
-        <form id="edit-form" method="dialog">
-          <input type="text" placeholder="Title" name="title" required />
-          <input type="text" placeholder="URL" name="url" required />
-          <div class="input-group">
-            <button id="submit-dialog">Save</button>
-            <button id="close-dialog">Cancel</button>
-          </div>
-          <figure class="error -hidden" id="edit-error">
-          </figure>
-        </form>
+        <div>
+          <form id="edit-form" method="dialog">
+            <input type="text" placeholder="Title" name="title" required />
+            <input type="text" placeholder="URL" name="url" required />
+            <div class="input-group">
+              <button id="submit-dialog">Save</button>
+              <button id="close-dialog">Cancel</button>
+            </div>
+            <figure class="error -hidden" id="edit-error">
+            </figure>
+          </form>
+        </div>
       </dialog>
 
-      ${_forEach<Page>(pages, (page) => `
-        <article class="article">
-          <header>
-            <a href="/archive/${page.filename}" class="title">${page.title}</a>
-          </header>
-          <div class="info">
-            <small><a href="${page.url}" class="url">${page.url}</a></small>
-          </div>
-          <div class="info">
-            <small>${page.size}</small>
-            <small>
-              <a
-                data-filename="${page.filename}"
-                data-title="${page.title}"
-                data-url="${page.url}"
-                class="link-btn edit-button"
-                role="button"
-                onclick="window.openEditDialog(this)"
-              >
-                edit
-              </a>
-            </small>
-            <small>
-              <a href="/delete/${page.filename}">
-                delete
-              </a>
-            </small>
-          </div>
-        </article>
-      `)}
+      ${_forEach<Page>(pages, (page) => {
+        const url = escapeHtml(page.url);
+        const title = escapeHtml(page.title);
+
+        return `
+          <article class="article">
+            <header>
+              <a href="/archive/${page.filename}" class="title">${title}</a>
+            </header>
+            <div class="info">
+              <small><a href="${url}" class="url">${url}</a></small>
+            </div>
+            <div class="info">
+              <small>${page.size}</small>
+              <small>
+                <a
+                  data-filename="${page.filename}"
+                  data-title="${title}"
+                  data-url="${url}"
+                  class="link-btn edit-button"
+                  role="button"
+                  onclick="window.openEditDialog(this)"
+                >
+                  edit
+                </a>
+              </small>
+              <small>
+                <a href="/delete/${page.filename}">
+                  delete
+                </a>
+              </small>
+            </div>
+          </article>
+        `;
+      })}
     </section>
   </main>
   <script defer src="home.js"></script>
@@ -113,39 +121,95 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
 
 export const Add = ({ error = '' } = {}) => Layout('Save New Page', `
   <main>
-    <a href="/">← Back To Archive</a>
-    <p>Enter a page URL and Title (optional) to archive it. Use the checkboxes configure the archiver.</p>
-    <form action="/add" method="post">
-      <div class="input-group">
-        <input type="text" name="url" placeholder="URL" maxlength="200" required>
-      </div>
-      <div class="input-group">
-        <input type="text" name="title" placeholder="Title (Optional)" maxlength="100">
-      </div>
-      ${MonolithOptions()}
-      ${_if(error !== '', `
-        <figure class="error">
-          ${error}
-        </figure>
-      `)}
-      <button type="submit">Save New Page</button>
-    </form>
+    <header>
+      <a href="/">← Back To Archive</a>
+      <p>Enter a page URL and Title (optional) to archive it. Use the checkboxes configure the archiver.</p>
+    </header>
+    <section>
+      <form action="/add" method="post">
+        <div class="input-group">
+          <input type="text" name="url" placeholder="URL" maxlength="200" required>
+        </div>
+        <div class="input-group">
+          <input type="text" name="title" placeholder="Title (Optional)" maxlength="100">
+        </div>
+        ${MonolithOptions()}
+        ${_if(error !== '', `
+          <figure class="error">
+            ${error}
+          </figure>
+        `)}
+        <button type="submit">Save New Page</button>
+      </form>
+    </section>
   </main>
   <script defer src="./add.js"></script>
 `);
 
 export const Delete = ({ filename, title }: { filename: string, title: string }) => Layout('Delete Page', `
   <main>
-    <a href="/">← Back To Archive</a>
-    <p>
-      <em>Are you sure you want to delete <strong>${title}</strong>?</em>
-    </p>
-    <form action="/delete/${filename}" method="post">
-      <div class="input-group">
-        <button type="submit">
-          Delete
-        </button>
-      </div>
-    </form>
+    <header>
+      <a href="/">← Back To Archive</a>
+      <p>
+        <em>Are you sure you want to delete <strong>${escapeHtml(title)}</strong>?</em>
+      </p>
+    </header>
+    <section>
+      <form action="/delete/${filename}" method="post">
+        <div class="input-group">
+          <button type="submit">
+            Delete
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+`);
+// https://everythingcs.dev/blog/hash-password-deno/
+// https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID
+// https://examples.deno.land/uuids
+export const Initialize = () => Layout('Initialize', `
+  <main>
+    <header>
+      <h1>Initialize</h1>
+    </header>
+    <section>
+      <p>Enter the password you will use to access your bookmarks.</p>
+      <form action="/initialize" method="post">
+        <div class="input-group">
+          <input type="password" name="password" id="password" placeholder="Password" required>
+        </div>
+        <div class="input-group">
+          <input type="password" name="confirm-password" id="confirm-password" placeholder="Confirm Password" required>
+        </div>
+
+        <div class="input-group">
+          <button type="submit">
+            Submit
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+`)
+
+export const Login = () => Layout('Login', `
+  <main>
+    <header>
+      <h1>Login</h1>
+    </header>
+    <section>
+      <form action="/login" method="post">
+        <div class="input-group">
+          <input type="password" name="password" id="password" placeholder="Password" required>
+        </div>
+
+        <div class="input-group">
+          <button type="submit">
+            Submit
+          </button>
+        </div>
+      </form>
+    </section>
   </main>
 `);

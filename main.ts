@@ -2,11 +2,15 @@ import { load } from 'std/dotenv/mod.ts';
 import { existsSync } from 'std/fs/mod.ts';
 import { join, resolve } from 'std/path/mod.ts';
 import { Router } from './router.ts';
-import { Add, Delete, Home } from './templates.ts';
-import { createSlug, fetchDocumentTitle, getSize, parseDirectory } from './util.ts';
-import { serveStatic } from './middleware/serveStatic.ts';
+import { Add, Delete, Home, Initialize } from './templates.ts';
+import {
+  createSlug,
+  fetchDocumentTitle,
+  getSize,
+  parseDirectory,
+} from './util.ts';
+import { serveStatic } from './middleware/static.ts';
 import { Database } from './db.ts';
-import { Page } from './types.ts';
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -64,6 +68,28 @@ app.get('/archive/*.html', async (req) => {
   });
 });
 
+app.get('/init', async () => {
+  let contents = '302';
+  let status = 302;
+  const headers = new Headers({
+    'content-type': 'text/html',
+  });
+
+  const { data: isInit } = await DB.checkInit();
+
+  if (isInit) {
+    headers.set('location', '/');
+  } else {
+    status = 200;
+    contents = Initialize();
+  }
+
+  return new Response(contents, {
+    status,
+    headers
+  });
+});
+
 app.get('/', async () => {
   const info = await Deno.stat(ARCHIVE_PATH);
   const date = info.mtime ?? new Date();
@@ -93,7 +119,7 @@ app.get('/', async () => {
   const html = Home({
     size,
     pages,
-    count: pages.length
+    count: pages.length,
   });
 
   return new Response(html, {
@@ -165,6 +191,7 @@ app.post('/delete/:filename', async (_req, params) => {
   });
 });
 
+// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_JavaScript_Deno
 app.post('/add', async (req) => {
   let contents = '302';
   let status = 302;
@@ -254,16 +281,31 @@ app.post('/edit', async (req) => {
 
   return new Response(contents, {
     status,
-    headers: { 'content-type': 'text/plain' }
-  })
+    headers: { 'content-type': 'text/plain' },
+  });
+});
+
+app.post('/initialize', async (req) => {
+  let contents = '302';
+  let status = 302;
+  const headers = new Headers({
+    'content-type': 'text/html',
+  });
+
+  const form = await req.formData();
+
+  return new Response(contents, {
+    status,
+    headers
+  });
 });
 
 app.post('/search', async (req) => {
   const body = await req.json();
-  console.log({body});
+  console.log({ body });
 
   return new Response('404', {
-    status: 404
+    status: 404,
   });
 });
 

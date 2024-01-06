@@ -3,15 +3,43 @@ import type { Page, PageCache } from './types.ts';
 import { join } from 'std/path/mod.ts';
 
 const DB_FILENAME = 'store';
+const INIT = ['init'];
 const PAGE_CACHE = ['page_cache'];
 const PAGE_DATA = ['page_data'];
 const MOD_TIME = ['last_modified'];
-
 
 export async function Database(path: string) {
   const KV = await Deno.openKv(join(path, DB_FILENAME));
 
   return {
+    async checkInit() {
+      let data = false;
+      let error = undefined;
+
+      try {
+        const res = await KV.get<boolean>(INIT);
+        data = res.value !== null;
+      } catch (e) {
+        error = e;
+      }
+
+      return { data, error };
+    },
+
+    async initApp() {
+      let ok = true;
+      let error = undefined;
+
+      try {
+        await KV.set(INIT, true);
+      } catch (e) {
+        error = e;
+        ok = false;
+      }
+
+      return { ok, error };
+    },
+
     async setCache({ pages, size }: PageCache) {
       let error = undefined;
 
@@ -27,7 +55,7 @@ export async function Database(path: string) {
     async getCache() {
       const data: PageCache = {
         pages: [],
-        size: '0 B'
+        size: '0 B',
       };
 
       let error = undefined;
@@ -61,12 +89,11 @@ export async function Database(path: string) {
           } else {
             // we don't have data for that filename saved
             // lets create a blank slate for it
-
             const newPage = {
               title: filename,
               url: '',
               filename,
-              size: files[i].size
+              size: files[i].size,
             };
 
             unsaved.push(newPage);
@@ -108,7 +135,7 @@ export async function Database(path: string) {
         error = e;
       }
 
-      return { data: changed, error }
+      return { data: changed, error };
     },
 
     async getPage(filename: string) {
@@ -149,7 +176,7 @@ export async function Database(path: string) {
         error = undefined;
 
       try {
-        const result = await KV.set([...PAGE_DATA, page.filename], page)
+        const result = await KV.set([...PAGE_DATA, page.filename], page);
         if (!result.ok) throw Error('KV: Add Page Failed.');
       } catch (e) {
         error = e;
@@ -159,14 +186,22 @@ export async function Database(path: string) {
       return { ok, error };
     },
 
-    async editPage({ filename, title, url }: { filename: string; title: string; url: string; }) {
+    async editPage(
+      { filename, title, url }: {
+        filename: string;
+        title: string;
+        url: string;
+      },
+    ) {
       let ok = true;
       let error = undefined;
 
       try {
         const key = [...PAGE_DATA, filename];
         const result = await KV.get<Page>(key);
-        if (result.value === null) throw Error('KV: Edit Page Failed; does not exist');
+        if (result.value === null) {
+          throw Error('KV: Edit Page Failed; does not exist');
+        }
         const page: Page = { ...result.value, title, url };
         await KV.set(key, page);
 
@@ -179,36 +214,6 @@ export async function Database(path: string) {
       }
 
       return { ok, error };
-    }
-
-    // async getPages() {
-    //   const data: ArchivePage[] = [];
-    //   let error = undefined;
-
-    //   try {
-    //     const ordered = await KV.get<Set<string>>(ORDERED);
-
-    //     if (ordered.value !== null) {
-    //       let i = 0;
-    //       const keys: Array<[string, string]> = [];
-
-    //       for (const id of ordered.value) {
-    //         if (i > 50) break;
-    //         keys.push(['articles', id]);
-    //         i += 1;
-    //       }
-
-    //       const entries = await KV.getMany<ArchivePage[]>(keys);
-
-    //       for await (const entry of entries) {
-    //         if (entry.value !== null) data.push(entry.value); 
-    //       }
-    //     }
-    //   } catch (e) {
-    //     error = e;
-    //   }
-
-    //   return { data, error };
-    // },
+    },
   };
 }

@@ -48,7 +48,8 @@ main > :where(header, section, footer) {
   margin: 1rem 0;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="password"] {
   width: 100%;
   padding: 0.5em;
   font-family: sans-serif;
@@ -92,6 +93,10 @@ button:not([disabled]):hover {
   margin: 0.5rem 0;
   display: flex;
   gap: 10px;
+}
+
+.input-group.-column {
+  flex-direction: column;
 }
 
 .articles {
