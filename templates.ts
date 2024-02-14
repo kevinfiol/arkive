@@ -168,20 +168,26 @@ export const Delete = ({ filename, title }: { filename: string, title: string })
 // https://everythingcs.dev/blog/hash-password-deno/
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID
 // https://examples.deno.land/uuids
-export const Initialize = () => Layout('Initialize', `
+export const Initialize = ({ error = '' } = {}) => Layout('Initialize', `
   <main>
     <header>
       <h1>Initialize</h1>
     </header>
     <section>
       <p>Enter the password you will use to access your bookmarks.</p>
-      <form action="/initialize" method="post">
+      <form action="/init" method="post">
         <div class="input-group">
-          <input type="password" name="password" id="password" placeholder="Password" required>
+          <input type="password" name="password" id="password" placeholder="Password" minlength="7" required>
         </div>
         <div class="input-group">
-          <input type="password" name="confirm-password" id="confirm-password" placeholder="Confirm Password" required>
+          <input type="password" name="confirm" id="confirm-password" placeholder="Confirm Password" minlength="7" required>
         </div>
+
+        ${_if(error !== '', `
+          <figure class="error">
+            ${error}
+          </figure>
+        `)}
 
         <div class="input-group">
           <button type="submit">

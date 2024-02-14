@@ -1,8 +1,9 @@
 {
   "tasks": {
-    "debug": "deno run --allow-env --allow-sys --inspect-brk --allow-net --unstable --allow-read --allow-run --allow-write main.ts",
-    "dev": "deno run --allow-env --allow-sys --watch --allow-net --unstable --allow-read --allow-run --allow-write main.ts",
-    "start": "deno run --allow-env --allow-sys --allow-net --unstable --allow-read --allow-run --allow-write main.ts"
+    "flags": "deno run --allow-env --allow-sys --allow-net --unstable --allow-read --allow-run --allow-write",
+    "start": "deno task flags main.ts",
+    "debug": "deno task flags --inspect-brk main.ts",
+    "dev": "deno task flags --watch main.ts",
   },
   "imports": {
     "std/": "https://deno.land/std@0.208.0/",

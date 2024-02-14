@@ -1,5 +1,15 @@
 import { walk } from 'std/fs/mod.ts';
 import { resolve } from 'std/path/mod.ts';
+import { hash, genSalt, compare } from 'bcrypt';
+
+export async function hashPassword(password: string) {
+  const salt = await genSalt(8);
+  return await hash(password, salt);
+}
+
+export async function validatePassword(password: string, hashed: string) {
+  return await compare(password, hashed);
+}
 
 export function createSlug(text = '') {
   const lines = text.split('\n');

@@ -8,6 +8,7 @@ import {
   fetchDocumentTitle,
   getSize,
   parseDirectory,
+  hashPassword
 } from './util.ts';
 import { serveStatic } from './middleware/static.ts';
 import { Database } from './db.ts';
@@ -285,7 +286,7 @@ app.post('/edit', async (req) => {
   });
 });
 
-app.post('/initialize', async (req) => {
+app.post('/init', async (req) => {
   let contents = '302';
   let status = 302;
   const headers = new Headers({
@@ -293,6 +294,32 @@ app.post('/initialize', async (req) => {
   });
 
   const form = await req.formData();
+  const password = form.get('password') as string;
+  const confirm = form.get('confirm') as string;
+
+  console.log({password, confirm});
+
+  if (password !== confirm) {
+    contents = Initialize({ error: 'Passwords do not match.' });
+    status = 500;
+  } else {
+    try {
+      const hashed = await hashPassword(password);
+      console.log({hashed});
+      await DB.initApp(hashed);
+
+      // now set the access token
+      // store this as a cookie. local/session storage is insecure because it can be accessed by any JS on the page
+      // generate a uuid using deno uuid (its crypto-secure)
+      // https://scribe.rip/deno-the-complete-reference/handling-cookies-in-deno-df42df28d222
+
+      headers.set('location', '/');
+    } catch (e) {
+      contents = Initialize({ error: 'An error occurred. Please try again.' });
+      status = 500;
+      console.error(e);
+    }
+  }
 
   return new Response(contents, {
     status,

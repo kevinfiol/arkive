@@ -4,6 +4,7 @@ import { join } from 'std/path/mod.ts';
 
 const DB_FILENAME = 'store';
 const INIT = ['init'];
+const PASSWORD = ['password'];
 const PAGE_CACHE = ['page_cache'];
 const PAGE_DATA = ['page_data'];
 const MOD_TIME = ['last_modified'];
@@ -26,18 +27,40 @@ export async function Database(path: string) {
       return { data, error };
     },
 
-    async initApp() {
+    async initApp(hashed: string) {
       let ok = true;
       let error = undefined;
 
       try {
-        await KV.set(INIT, true);
+        await KV.atomic()
+          .set(INIT, true)
+          .set(PASSWORD, hashed)
+          .commit();
       } catch (e) {
         error = e;
         ok = false;
       }
 
       return { ok, error };
+    },
+
+    async getHashedPassword() {
+      let data = '';
+      let error = undefined;
+
+      try {
+        const res = await KV.get<string>(PASSWORD);
+
+        if (res.value === null) {
+          throw Error('Password does not exist. App may be uninitialized.');
+        }
+
+        data = res.value;
+      } catch (e) {
+        error = e;
+      }
+
+      return { data, error };
     },
 
     async setCache({ pages, size }: PageCache) {
