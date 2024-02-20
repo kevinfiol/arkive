@@ -59,6 +59,7 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
     </header>
     <section class="controls">
       <a href="/add">Save New Page</a>
+      <a href="/logout">Logout</a>
       <div class="input-group">
         <input type="text" placeholder="Type to Search..." id="search-bar" />
       </div>
@@ -165,9 +166,7 @@ export const Delete = ({ filename, title }: { filename: string, title: string })
     </section>
   </main>
 `);
-// https://everythingcs.dev/blog/hash-password-deno/
-// https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID
-// https://examples.deno.land/uuids
+
 export const Initialize = ({ error = '' } = {}) => Layout('Initialize', `
   <main>
     <header>
@@ -199,7 +198,7 @@ export const Initialize = ({ error = '' } = {}) => Layout('Initialize', `
   </main>
 `)
 
-export const Login = () => Layout('Login', `
+export const Login = ({ error = '' } = {}) => Layout('Login', `
   <main>
     <header>
       <h1>Login</h1>
@@ -209,6 +208,12 @@ export const Login = () => Layout('Login', `
         <div class="input-group">
           <input type="password" name="password" id="password" placeholder="Password" required>
         </div>
+
+        ${_if(error !== '', `
+          <figure class="error">
+            ${error}
+          </figure>
+        `)}
 
         <div class="input-group">
           <button type="submit">

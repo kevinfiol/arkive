@@ -1,14 +1,17 @@
+import * as cookie from 'std/http/cookie.ts';
 import { load } from 'std/dotenv/mod.ts';
 import { existsSync } from 'std/fs/mod.ts';
 import { join, resolve } from 'std/path/mod.ts';
+import { validate } from 'std/uuid/mod.ts';
 import { Router } from './router.ts';
-import { Add, Delete, Home, Initialize } from './templates.ts';
+import { Add, Delete, Home, Initialize, Login } from './templates.ts';
 import {
   createSlug,
   fetchDocumentTitle,
   getSize,
   parseDirectory,
-  hashPassword
+  hashPassword,
+  validatePassword
 } from './util.ts';
 import { serveStatic } from './middleware/static.ts';
 import { Database } from './db.ts';
@@ -29,6 +32,8 @@ export const MONOLITH_OPTIONS = {
 // load .env file
 await load({ export: true });
 
+const COOKIE_NAME = 'ARKIVE_ACCESS_TOKEN';
+const MAX_COOKIE_AGE = 3600 * 24 * 14; // 2 weeks
 const SERVER_PORT = Deno.env.get('SERVER_PORT') ?? 8000;
 const DATA_PATH = resolve('./data');
 const STATIC_ROOT = resolve('./static');
@@ -44,6 +49,31 @@ const DB = await Database(DB_PATH);
 const app = new Router();
 
 app.get('*', serveStatic(STATIC_ROOT));
+
+app.get('*', async (req) => {
+  const { data: isInit } = await DB.checkInit();
+  const cookies = cookie.getCookies(req.headers);
+  const token = cookies[COOKIE_NAME];
+  const isValidToken = typeof token === 'string' && validate(token);
+
+  if (!isInit) {
+    // render init page
+    return new Response(Initialize(), {
+      status: 200,
+      headers: new Headers({
+        'content-type': 'text/html'
+      })
+    });
+  } else if (!isValidToken) {
+    // render login page
+    return new Response(Login(), {
+      status: 200,
+      headers: new Headers({
+        'content-type': 'text/html'
+      })
+    });
+  }
+});
 
 app.get('/archive/*.html', async (req) => {
   let contents: ReadableStream | string = '';
@@ -66,28 +96,6 @@ app.get('/archive/*.html', async (req) => {
   return new Response(contents, {
     status,
     headers,
-  });
-});
-
-app.get('/init', async () => {
-  let contents = '302';
-  let status = 302;
-  const headers = new Headers({
-    'content-type': 'text/html',
-  });
-
-  const { data: isInit } = await DB.checkInit();
-
-  if (isInit) {
-    headers.set('location', '/');
-  } else {
-    status = 200;
-    contents = Initialize();
-  }
-
-  return new Response(contents, {
-    status,
-    headers
   });
 });
 
@@ -135,6 +143,38 @@ app.get('/add', () => {
   return new Response(html, {
     status: 200,
     headers: { 'content-type': 'text/html' },
+  });
+});
+
+app.get('/login', (req) => {
+  const cookies = cookie.getCookies(req.headers);
+  const token = cookies[COOKIE_NAME];
+  const isValidToken = typeof token === 'string' && validate(token);
+
+  if (isValidToken) {
+    // already logged in
+    return new Response('302', {
+      status: 302,
+      headers: new Headers({ 'location': '/' })
+    });
+  }
+
+  return new Response(Login(), {
+    status: 200,
+    headers: new Headers({ 'content-type': 'text/html' })
+  });
+});
+
+app.get('/logout', () => {
+  const headers = new Headers({
+    'location': '/login'
+  });
+
+  cookie.deleteCookie(headers, COOKIE_NAME);
+
+  return new Response('302', {
+    status: 302,
+    headers
   });
 });
 
@@ -286,6 +326,52 @@ app.post('/edit', async (req) => {
   });
 });
 
+app.post('/login', async (req) => {
+  let contents = '302';
+  let status = 302;
+
+  const headers = new Headers({
+    'content-type': 'text/html'
+  });
+
+  const wrongPassword = 'Wrong Password';
+  const form = await req.formData();
+  const password = form.get('password') as string;
+
+  try {
+    const { data: hashed, error } = await DB.getHashedPassword();
+    if (error) throw error;
+
+    const success = await validatePassword(password, hashed);
+    if (!success) throw Error(wrongPassword);
+
+    cookie.setCookie(headers, {
+      name: COOKIE_NAME,
+      value: crypto.randomUUID(),
+      secure: true,
+      httpOnly: true,
+      sameSite: 'Strict',
+      maxAge: MAX_COOKIE_AGE
+    });
+
+    headers.set('location', '/');
+  } catch (e) {
+    let errorMessage = wrongPassword;
+    if (e.message !== wrongPassword) {
+      errorMessage = 'A server error occurred';
+      console.error(e);
+    }
+
+    contents = Login({ error: errorMessage });
+    status = 500;
+  }
+
+  return new Response(contents, {
+    status,
+    headers
+  });
+});
+
 app.post('/init', async (req) => {
   let contents = '302';
   let status = 302;
@@ -297,21 +383,22 @@ app.post('/init', async (req) => {
   const password = form.get('password') as string;
   const confirm = form.get('confirm') as string;
 
-  console.log({password, confirm});
-
   if (password !== confirm) {
     contents = Initialize({ error: 'Passwords do not match.' });
     status = 500;
   } else {
     try {
       const hashed = await hashPassword(password);
-      console.log({hashed});
       await DB.initApp(hashed);
 
-      // now set the access token
-      // store this as a cookie. local/session storage is insecure because it can be accessed by any JS on the page
-      // generate a uuid using deno uuid (its crypto-secure)
-      // https://scribe.rip/deno-the-complete-reference/handling-cookies-in-deno-df42df28d222
+      cookie.setCookie(headers, {
+        name: COOKIE_NAME,
+        value: crypto.randomUUID(),
+        secure: true,
+        httpOnly: true,
+        sameSite: 'Strict',
+        maxAge: MAX_COOKIE_AGE
+      });
 
       headers.set('location', '/');
     } catch (e) {
