@@ -1,14 +1,41 @@
 import { walk } from 'std/fs/mod.ts';
 import { resolve } from 'std/path/mod.ts';
+import { encode, decode } from 'std/encoding/base64.ts';
 import { hash, genSalt, compare } from 'bcrypt';
 
-export async function hashPassword(password: string) {
-  const salt = await genSalt(8);
-  return await hash(password, salt);
+let SECRET_KEY: CryptoKey | undefined = undefined;
+
+export async function encodeMessage(message: string, secret: string) {
+  const encoder = new TextEncoder();
+  const algorithm = 'HMAC';
+
+  if (!SECRET_KEY) {
+    const buffer = encoder.encode(secret);
+    SECRET_KEY = await crypto.subtle.importKey(
+      'raw',
+      buffer,
+      { name: algorithm, hash: 'SHA-256' },
+      true,
+      ['sign', 'verify']
+    );
+  }
+
+  const data = encoder.encode(message);
+  const result = await crypto.subtle.sign(algorithm, SECRET_KEY, data.buffer);
+  return encode(new Uint8Array(result));
 }
 
-export async function validatePassword(password: string, hashed: string) {
-  return await compare(password, hashed);
+export async function decodeMessage(message: string, secret: string) {
+  
+}
+
+export async function hashPhrase(phrase: string) {
+  const salt = await genSalt();
+  return await hash(phrase, salt);
+}
+
+export async function validatePhrase(phrase: string, hashed: string) {
+  return await compare(phrase, hashed);
 }
 
 export function createSlug(text = '') {

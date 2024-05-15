@@ -5,9 +5,12 @@ import { join } from 'std/path/mod.ts';
 const DB_FILENAME = 'store';
 const INIT = ['init'];
 const PASSWORD = ['password'];
+const TOKEN = ['token'];
 const PAGE_CACHE = ['page_cache'];
 const PAGE_DATA = ['page_data'];
 const MOD_TIME = ['last_modified'];
+
+export const MAX_COOKIE_AGE = 3600 * 24 * 7; // 1 week in SECONDS
 
 export async function Database(path: string) {
   const KV = await Deno.openKv(join(path, DB_FILENAME));
@@ -61,6 +64,51 @@ export async function Database(path: string) {
       }
 
       return { data, error };
+    },
+
+    async isValidToken(token: string) {
+      let data = false;
+      let error = undefined;
+
+      try {
+        const res = await KV.get<boolean>([...TOKEN, token]);
+        data = res.value === true;
+      } catch (e) {
+        error = e;
+      }
+
+      return { data, error };
+    },
+
+    async setToken(token: string) {
+      let error = undefined;
+
+      try {
+        await KV.set([...TOKEN, token], true, {
+          expireIn: MAX_COOKIE_AGE * 1000 // seconds -> ms
+        });
+      } catch (e) {
+        error = e;
+      }
+
+      return { error };
+    },
+
+    async removeToken(token: string) {
+      let error = undefined;
+
+      try {
+        const res = await KV.atomic()
+          .delete([...TOKEN, token])
+          .commit();
+
+        if (!res.ok) throw Error ('Unable to delete token');
+      } catch (e) {
+        error = e;
+        console.error(e);
+      }
+
+      return { error };
     },
 
     async setCache({ pages, size }: PageCache) {
