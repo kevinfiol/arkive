@@ -1,5 +1,5 @@
 import type { Page } from './types.ts';
-import { MONOLITH_OPTIONS } from './main.ts';
+import { MONOLITH_OPTIONS } from './constants.ts';
 import { escapeHtml } from './util.ts';
 
 function _if(condition: unknown, template: string) {
@@ -21,7 +21,7 @@ const Layout = (title: string, content: string) => `
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="description" content="personal article archive" >
-    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/static/main.css">
     <title>
       ${title || 'Archive'}
     </title>
@@ -117,7 +117,7 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
       })}
     </section>
   </main>
-  <script defer src="home.js"></script>
+  <script defer src="/static/home.js"></script>
 `);
 
 export const Add = ({ error = '' } = {}) => Layout('Save New Page', `
@@ -144,7 +144,7 @@ export const Add = ({ error = '' } = {}) => Layout('Save New Page', `
       </form>
     </section>
   </main>
-  <script defer src="./add.js"></script>
+  <script defer src="/static/add.js"></script>
 `);
 
 export const Delete = ({ filename, title }: { filename: string, title: string }) => Layout('Delete Page', `

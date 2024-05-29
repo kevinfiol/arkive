@@ -1,5 +1,7 @@
 export const ACCESS_TOKEN_NAME = 'ARKIVE_ACCESS_TOKEN';
 
+export const ZERO_BYTES = '0 B';
+
 export const DATA_PATH = './data';
 
 export const MONOLITH_OPTIONS = {

@@ -1,7 +1,6 @@
-import { walk } from 'std/fs/mod.ts';
-import { resolve } from 'std/path/mod.ts';
-import { encode, decode } from 'std/encoding/base64.ts';
-import { hash, genSalt, compare } from 'bcrypt';
+import { walk } from '@std/fs';
+import { resolve } from '@std/path';
+import { encodeBase64 } from '@std/encoding/base64';
 
 let SECRET_KEY: CryptoKey | undefined = undefined;
 
@@ -22,20 +21,7 @@ export async function encodeMessage(message: string, secret: string) {
 
   const data = encoder.encode(message);
   const result = await crypto.subtle.sign(algorithm, SECRET_KEY, data.buffer);
-  return encode(new Uint8Array(result));
-}
-
-export async function decodeMessage(message: string, secret: string) {
-  
-}
-
-export async function hashPhrase(phrase: string) {
-  const salt = await genSalt();
-  return await hash(phrase, salt);
-}
-
-export async function validatePhrase(phrase: string, hashed: string) {
-  return await compare(phrase, hashed);
+  return encodeBase64(new Uint8Array(result));
 }
 
 export function createSlug(text = '') {

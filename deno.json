@@ -1,22 +1,19 @@
 {
   "tasks": {
-    "start": "deno run -A main.ts",
-    "debug": "deno run -A --inspect-brk main.ts",
-    "dev": "deno run -A --watch main.ts",
+    "start": "deno run -A --unstable-ffi main.ts",
+    "debug": "deno run -A --unstable-ffi --inspect-brk main.ts",
+    "dev": "deno run -A --unstable-ffi --watch main.ts",
     "reload:cache": "deno cache --reload main.ts"
   },
   "imports": {
-    "@db/sqlite": "jsr:@db/sqlite@^0.11.1",
     "@std/dotenv": "jsr:@std/dotenv@^0.224.0",
     "@std/encoding": "jsr:@std/encoding@^0.224.0",
     "@std/fs": "jsr:@std/fs@^0.224.0",
     "@std/http": "jsr:@std/http@^0.224.0",
     "@std/path": "jsr:@std/path@^0.224.0",
     "@std/uuid": "jsr:@std/uuid@^0.224.0",
-    "hono": "https://deno.land/x/hono@v4.3.4/mod.ts",
-    "hono/cookie": "https://deno.land/x/hono@v4.3.4/helper/cookie/index.ts",
-    "hono/html": "https://deno.land/x/hono@v4.3.4/helper/html/index.ts",
-    "hono/middleware": "https://deno.land/x/hono@v4.3.4/middleware.ts"
+    "@db/sqlite": "jsr:@db/sqlite@^0.11.1",
+    "@hono/hono": "jsr:@hono/hono@^4.4.0"
   },
   "lint": {
     "include": ["*.ts"],
