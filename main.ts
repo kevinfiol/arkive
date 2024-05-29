@@ -17,7 +17,29 @@ const ARCHIVE_PATH = join(DATA_PATH, './archive');
 });
 
 const app = new Hono();
+
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
+
+app.get('/archive/*.html', async (c) => {
+  const url = new URL(c.req.url);
+  const fileName = url.pathname.replace(/^\/archive\//, '');
+  const filePath = join(ARCHIVE_PATH, fileName);
+
+  try {
+    if (!existsSync(filePath, { isFile: true, isReadable: true })) {
+      throw Error('File does not exist: ' + filePath);
+    }
+
+    const file = await Deno.open(filePath, { read: true });
+    const stream = file.readable;
+
+    c.header('content-type', 'text/html');
+    return c.body(stream);
+  } catch (_e) {
+    c.status(404);
+    return c.text('404: File does not exist or is unreadable');
+  }
+});
 
 app.get('/', (c) => {
   return c.text('sup');
