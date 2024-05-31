@@ -1,7 +1,7 @@
 import { Database } from '@db/sqlite';
 import { join } from '@std/path';
 import { DATA_PATH, ZERO_BYTES } from './constants.ts';
-import type { PageCache } from './types.ts';
+import type { Page, PageCache } from './types.ts';
 
 const DB_FILENAME = 'arkive.db';
 
@@ -22,7 +22,7 @@ export function checkModified(isoTimestamp: string) {
     `);
 
     const row = select.get<{ modified_time: string }>();
-    changed = row.modified_time !== isoTimestamp;
+    changed = row?.modified_time !== isoTimestamp;
 
     if (changed) {
       const update = db.prepare(`
@@ -76,8 +76,92 @@ export function setCache({ pages, size }: PageCache) {
     const json = JSON.stringify({ pages, size });
     update.run({ pageCache: json });
   } catch (e) {
+    error = e;
     console.error(e);
   }
 
   return { error };
+}
+
+export function getPage(filename: string) {
+  let page: Page | undefined = undefined;
+  let error = undefined;
+
+  try {
+    const select = db.prepare(`
+      select *
+      from page
+      where filename = :filename
+    `);
+
+    page = select.get<Page>({ filename });
+  } catch (e) {
+    error = e;
+  }
+
+  return { data: page, error };
+}
+
+export function addPage(page: Page) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const insert = db.prepare(`
+      insert into page (title, url, filename, size)
+      values (:title, :url, :filename, :size)
+    `);
+
+    const res = insert.run({ ...page });
+    console.log({res});
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
+export function deletePage(filename: string) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const deletion = db.prepare(`
+      delete from page
+      where filename = :filename
+    `);
+
+    const res = deletion.run({ filename });
+    console.log({res});
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
+export function getPagesData(files: Array<{ name: string; size: number }>) {
+  const data: { [filename:string]: Page } = {};
+  let error = undefined;
+
+  try {
+    const filenames = files.map((file) => file.name);
+    const paramStr = Array(filenames.length).fill("?").join(",")
+    const select = db.prepare(`
+      select *
+      from page
+      where filename in (${paramStr})
+    `);
+
+    const rows = select.all(...filenames);
+
+    // const unsaved: Page[] = [];
+    console.log(rows);
+  } catch (e) {
+    console.error(e);
+  }
+
+  return { data, error };
 }

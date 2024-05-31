@@ -2,7 +2,7 @@ export interface Page {
   title: string;
   url: string;
   filename: string;
-  size: string;
+  size: number;
 }
 
 export interface PageCache {

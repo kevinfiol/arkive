@@ -41,6 +41,10 @@ export function createSlug(text = '') {
   return '';
 }
 
+export function createFilename(timestamp: number, title: string) {
+  return (timestamp.toString()) + '-' + createSlug(title) + '.html';
+}
+
 export async function fetchDocumentTitle(url: string) {
   let data = '', error = undefined;
 
@@ -87,7 +91,7 @@ export async function getSize(path: string) {
     }
   }
 
-  return formatBytes(size);
+  return size;
 }
 
 export function escapeHtml(html: string) {
@@ -109,14 +113,14 @@ export async function parseDirectory(path: string) {
     if (file.isFile && ext === 'html') {
       const stats = await Deno.stat(file.path);
       size += stats.size;
-      files.push({ name: file.name, size: formatBytes(stats.size) });
+      files.push({ name: file.name, size: stats.size });
     }
   }
 
   return { files, size: formatBytes(size) };
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   const kb = 1024;
   const mb = kb * 1024;
   const gb = mb * 1024;

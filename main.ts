@@ -3,11 +3,12 @@ import { serveStatic } from '@hono/hono/deno';
 import { loadSync } from '@std/dotenv';
 import { join, resolve } from '@std/path';
 import { existsSync } from '@std/fs';
-import { DATA_PATH, MIMES } from './constants.ts';
-import { parseDirectory } from './util.ts';
+import { DATA_PATH, MIMES, MONOLITH_OPTIONS } from './constants.ts';
+import { fetchDocumentTitle, createFilename, parseDirectory, getSize } from './util.ts';
 import * as database from './db.ts';
 import { Home } from './templates.ts';
 import { Add } from './templates.ts';
+import type { Page } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -46,15 +47,23 @@ app.get('/archive/*.html', async (c) => {
 });
 
 app.get('/', async (c) => {
-  // const info = await Deno.stat(ARCHIVE_PATH);
-  // const date = info.mtime ?? new Date();
-  // const modifiedTime = date.toISOString();
-
+  const info = await Deno.stat(ARCHIVE_PATH);
+  const date = info.mtime ?? new Date();
+  const modifiedTime = date.toISOString();
   // const { data: hasChanged } = database.checkModified(modifiedTime);
 
-  const pages = [];
+  let pages: Page[] = [];
+
+  // if (hasChanged) {
+  //   const directory = await parseDirectory(ARCHIVE_PATH);
+  //   const { data: pagesData } = database.getPagesData(directory.files);
+  //   const size = directory.size;
+  // } else {
+
+  // }
+
   const directory = await parseDirectory(ARCHIVE_PATH);
-  const size = directory.size;
+  database.getPagesData(directory.files);
 
   for (const file of directory.files) {
     pages.push({
@@ -66,7 +75,7 @@ app.get('/', async (c) => {
   }
 
   const html = Home({
-    size,
+    size: 0,
     pages,
     count: pages.length
   });
@@ -79,10 +88,74 @@ app.get('/add', (c) => {
   return c.html(html);
 });
 
-app.get('/delete/:filename', async (c) => {
-  const filename = c.req.param('filename');
-  
-  return c.html('delete time');
+app.post('/add', async (c) => {
+  const monolithOpts = [];
+  const form = await c.req.formData();
+
+  const url = form.get('url') as string;
+  let title = form.get('title') as string;
+
+  for (const entry of form.entries()) {
+    // collect monolith opt flags
+    const key = entry[0] as keyof typeof MONOLITH_OPTIONS;
+    if (key in MONOLITH_OPTIONS && entry[1] === 'on') {
+      // if valid option and item is checked
+      const flag = MONOLITH_OPTIONS[key].flag;
+      monolithOpts.push(flag);
+    }
+  }
+
+  if (title.trim() === '') {
+    // if user did not set title, fetch from document url
+    const docTitle = await fetchDocumentTitle(url);
+    title = docTitle.data;
+  }
+
+  const timestamp = Date.now();
+  const filename = createFilename(timestamp, title);
+  const path = join(ARCHIVE_PATH, filename);
+
+  const cmd = new Deno.Command('monolith', {
+    args: [`--output=${path}`, ...monolithOpts, url]
+  });
+
+  const output = await cmd.output();
+
+  if (!output.success) {
+    const html = Add({
+      error: 'Unable to save page. Please try again or check the URL.'
+    });
+
+    console.error(output);
+    c.status(500);
+    return c.html(html);
+  }
+
+  const size = await getSize(path);
+  const page: Page = { filename, title, url, size };
+
+  try {
+    const result = database.addPage(page);
+    if (!result.ok) throw result.error;
+
+    c.header('location', '/');
+    c.status(302);
+    return c.text('302');
+  } catch (e) {
+    const html = Add({
+      error: 'Unable to save page. Please try again or check the URL.'
+    });
+
+    console.error(e);
+    c.status(500);
+    return c.html(html);
+  }
 });
+
+// app.get('/delete/:filename', async (c) => {
+//   const filename = c.req.param('filename');
+  
+//   return c.html('delete time');
+// });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

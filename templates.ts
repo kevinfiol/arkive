@@ -1,6 +1,6 @@
 import type { Page } from './types.ts';
 import { MONOLITH_OPTIONS } from './constants.ts';
-import { escapeHtml } from './util.ts';
+import { escapeHtml, formatBytes } from './util.ts';
 
 function _if(condition: unknown, template: string) {
   return condition ? template : '';
@@ -49,11 +49,11 @@ const MonolithOptions = () => `
   </ul>
 `;
 
-export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string, count: number }) => Layout('Archive', `
+export const Home = ({ pages, size, count }: { pages: Array<Page>, size: number, count: number }) => Layout('Archive', `
   <main>
     <header>
       <div class="header-info">
-        <span>Disk Usage: ${size}</span>
+        <span>Disk Usage: ${formatBytes(size)}</span>
         <span>Showing ${count < 50 ? count : '50'} of ${count} saved pages</span>
       </div>
     </header>
@@ -93,7 +93,7 @@ export const Home = ({ pages, size, count }: { pages: Array<Page>, size: string,
               <small><a href="${url}" class="url">${url}</a></small>
             </div>
             <div class="info">
-              <small>${page.size}</small>
+              <small>${formatBytes(page.size)}</small>
               <small>
                 <a
                   data-filename="${page.filename}"
