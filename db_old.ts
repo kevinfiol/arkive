@@ -85,7 +85,7 @@ export async function Database(path: string) {
 
       try {
         await KV.set([...TOKEN, token], true, {
-          expireIn: MAX_COOKIE_AGE * 1000 // seconds -> ms
+          expireIn: MAX_COOKIE_AGE * 1000, // seconds -> ms
         });
       } catch (e) {
         error = e;
@@ -102,7 +102,7 @@ export async function Database(path: string) {
           .delete([...TOKEN, token])
           .commit();
 
-        if (!res.ok) throw Error ('Unable to delete token');
+        if (!res.ok) throw Error('Unable to delete token');
       } catch (e) {
         error = e;
         console.error(e);

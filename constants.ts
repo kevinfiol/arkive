@@ -1,6 +1,6 @@
 export const ACCESS_TOKEN_NAME = 'ARKIVE_ACCESS_TOKEN';
 
-export const ZERO_BYTES = '0 B';
+export const ZERO_BYTES = 0;
 
 export const DATA_PATH = './data';
 
@@ -21,5 +21,5 @@ export const MIMES: Record<string, string> = {
   'js': 'text/javascript',
   'css': 'text/css',
   'ico': 'image/vnd.microsoft.icon',
-  'svg': 'image/svg+xml'
+  'svg': 'image/svg+xml',
 };

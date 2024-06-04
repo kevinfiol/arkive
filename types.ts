@@ -1,11 +1,11 @@
-export interface Page {
+export type Page = {
   title: string;
   url: string;
   filename: string;
   size: number;
-}
+};
 
-export interface PageCache {
+export type PageCache = {
   pages: Page[];
-  size: string;
-}
+  size: number;
+};

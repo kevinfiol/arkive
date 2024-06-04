@@ -8,7 +8,7 @@ const DB_FILENAME = 'arkive.db';
 export const db = new Database(join(DATA_PATH, DB_FILENAME));
 
 // use WAL mode
-db.exec("pragma journal_mode = WAL");
+db.exec('pragma journal_mode = WAL');
 
 export function checkModified(isoTimestamp: string) {
   let changed = true;
@@ -112,8 +112,8 @@ export function addPage(page: Page) {
       values (:title, :url, :filename, :size)
     `);
 
-    const res = insert.run({ ...page });
-    console.log({res});
+    const changes = insert.run({ ...page });
+    if (changes !== 1) throw Error('Unable to add page');
   } catch (e) {
     error = e;
     ok = false;
@@ -133,7 +133,7 @@ export function deletePage(filename: string) {
     `);
 
     const res = deletion.run({ filename });
-    console.log({res});
+    console.log({ res });
   } catch (e) {
     error = e;
     ok = false;
@@ -143,23 +143,22 @@ export function deletePage(filename: string) {
 }
 
 export function getPagesData(files: Array<{ name: string; size: number }>) {
-  const data: { [filename:string]: Page } = {};
+  const data: { [filename: string]: Page } = {};
   let error = undefined;
 
   try {
     const filenames = files.map((file) => file.name);
-    const paramStr = Array(filenames.length).fill("?").join(",")
+    const paramStr = Array(filenames.length).fill('?').join(',');
     const select = db.prepare(`
       select *
       from page
       where filename in (${paramStr})
     `);
 
-    const rows = select.all(...filenames);
-
-    // const unsaved: Page[] = [];
-    console.log(rows);
+    const rows = select.all<Page>(...filenames);
+    for (const row of rows) data[row.filename] = row;
   } catch (e) {
+    error = e;
     console.error(e);
   }
 

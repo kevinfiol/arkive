@@ -11,14 +11,12 @@ import {
   createSlug,
   fetchDocumentTitle,
   getSize,
-  parseDirectory,
   hashPhrase,
-  validatePhrase,
+  parseDirectory,
   sealToken,
-  unsealToken
+  unsealToken,
+  validatePhrase,
 } from './util.ts';
-
-
 
 // load .env file
 await load({ export: true });
@@ -31,7 +29,7 @@ const STATIC_ROOT = resolve('./static');
 const ARCHIVE_PATH = join(DATA_PATH, './archive');
 const DB_PATH = join(DATA_PATH, './db');
 
-console.log({SESSION_SECRET, SERVER_PORT});
+console.log({ SESSION_SECRET, SERVER_PORT });
 
 // create directories
 [DATA_PATH, ARCHIVE_PATH, DB_PATH].forEach((path) => {
@@ -77,16 +75,16 @@ app.get('*', async (req) => {
     return new Response(Initialize(), {
       status: 200,
       headers: new Headers({
-        'content-type': 'text/html'
-      })
+        'content-type': 'text/html',
+      }),
     });
   } else if (!isValidSession) {
     // render login page
     return new Response(Login(), {
       status: 200,
       headers: new Headers({
-        'content-type': 'text/html'
-      })
+        'content-type': 'text/html',
+      }),
     });
   }
 });
@@ -171,19 +169,19 @@ app.get('/login', async (req) => {
     // already logged in
     return new Response('302', {
       status: 302,
-      headers: new Headers({ 'location': '/' })
+      headers: new Headers({ 'location': '/' }),
     });
   }
 
   return new Response(Login(), {
     status: 200,
-    headers: new Headers({ 'content-type': 'text/html' })
+    headers: new Headers({ 'content-type': 'text/html' }),
   });
 });
 
 app.get('/logout', async (req) => {
   const headers = new Headers({
-    'location': '/login'
+    'location': '/login',
   });
 
   // delete token from store
@@ -196,7 +194,7 @@ app.get('/logout', async (req) => {
 
   return new Response('302', {
     status: 302,
-    headers
+    headers,
   });
 });
 
@@ -353,7 +351,7 @@ app.post('/login', async (req) => {
   let status = 302;
 
   const headers = new Headers({
-    'content-type': 'text/html'
+    'content-type': 'text/html',
   });
 
   const wrongPassword = 'Wrong Password';
@@ -377,7 +375,7 @@ app.post('/login', async (req) => {
       secure: true,
       httpOnly: true,
       sameSite: 'Lax',
-      maxAge: MAX_COOKIE_AGE
+      maxAge: MAX_COOKIE_AGE,
     });
 
     headers.set('location', '/');
@@ -394,7 +392,7 @@ app.post('/login', async (req) => {
 
   return new Response(contents, {
     status,
-    headers
+    headers,
   });
 });
 
@@ -427,7 +425,7 @@ app.post('/init', async (req) => {
         secure: true,
         httpOnly: true,
         sameSite: 'Lax',
-        maxAge: MAX_COOKIE_AGE
+        maxAge: MAX_COOKIE_AGE,
       });
 
       headers.set('location', '/');
@@ -440,7 +438,7 @@ app.post('/init', async (req) => {
 
   return new Response(contents, {
     status,
-    headers
+    headers,
   });
 });
 

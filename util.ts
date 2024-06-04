@@ -1,6 +1,7 @@
 import { walk } from '@std/fs';
 import { resolve } from '@std/path';
 import { encodeBase64 } from '@std/encoding/base64';
+import type { Page } from './types.ts';
 
 let SECRET_KEY: CryptoKey | undefined = undefined;
 
@@ -15,7 +16,7 @@ export async function encodeMessage(message: string, secret: string) {
       buffer,
       { name: algorithm, hash: 'SHA-256' },
       true,
-      ['sign', 'verify']
+      ['sign', 'verify'],
     );
   }
 
@@ -98,7 +99,7 @@ export function escapeHtml(html: string) {
   return html.replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('\'', '&apos;')
+    .replaceAll("'", '&apos;')
     .replaceAll('"', '&quot;');
 }
 
@@ -117,7 +118,7 @@ export async function parseDirectory(path: string) {
     }
   }
 
-  return { files, size: formatBytes(size) };
+  return { files, size };
 }
 
 export function formatBytes(bytes: number): string {
@@ -134,4 +135,13 @@ export function formatBytes(bytes: number): string {
   } else {
     return (bytes / gb).toFixed(2) + ' GB';
   }
+}
+
+export function createEmptyPage(filename: string, size: number): Page {
+  return {
+    title: filename,
+    url: '',
+    filename,
+    size,
+  };
 }

@@ -4,11 +4,18 @@ import { loadSync } from '@std/dotenv';
 import { join, resolve } from '@std/path';
 import { existsSync } from '@std/fs';
 import { DATA_PATH, MIMES, MONOLITH_OPTIONS } from './constants.ts';
-import { fetchDocumentTitle, createFilename, parseDirectory, getSize } from './util.ts';
+import {
+  createEmptyPage,
+  createFilename,
+  fetchDocumentTitle,
+  getSize,
+  parseDirectory,
+} from './util.ts';
 import * as database from './db.ts';
-import { Home } from './templates.ts';
+import { Delete, Home } from './templates.ts';
 import { Add } from './templates.ts';
 import type { Page } from './types.ts';
+import { ZERO_BYTES } from './constants.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -28,7 +35,7 @@ app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 app.get('/archive/*.html', async (c) => {
   const url = new URL(c.req.url);
   const fileName = url.pathname.replace(/^\/archive\//, '');
-  const filePath = join(ARCHIVE_PATH, fileName);
+  const filePath = join(ARCHIVE_PATH, decodeURIComponent(fileName));
 
   try {
     if (!existsSync(filePath, { isFile: true, isReadable: true })) {
@@ -40,7 +47,8 @@ app.get('/archive/*.html', async (c) => {
 
     c.header('content-type', 'text/html');
     return c.body(stream);
-  } catch (_e) {
+  } catch (e) {
+    console.error(e);
     c.status(404);
     return c.text('404: File does not exist or is unreadable');
   }
@@ -50,34 +58,40 @@ app.get('/', async (c) => {
   const info = await Deno.stat(ARCHIVE_PATH);
   const date = info.mtime ?? new Date();
   const modifiedTime = date.toISOString();
-  // const { data: hasChanged } = database.checkModified(modifiedTime);
+  const { data: hasChanged } = database.checkModified(modifiedTime);
 
   let pages: Page[] = [];
+  let size = ZERO_BYTES;
 
-  // if (hasChanged) {
-  //   const directory = await parseDirectory(ARCHIVE_PATH);
-  //   const { data: pagesData } = database.getPagesData(directory.files);
-  //   const size = directory.size;
-  // } else {
+  if (hasChanged) {
+    const directory = await parseDirectory(ARCHIVE_PATH);
+    const { data: pagesData } = database.getPagesData(directory.files);
 
-  // }
+    for (const file of directory.files) {
+      let page;
 
-  const directory = await parseDirectory(ARCHIVE_PATH);
-  database.getPagesData(directory.files);
+      if (file.name in pagesData) {
+        page = pagesData[file.name];
+      } else {
+        page = createEmptyPage(file.name, file.size);
+        database.addPage(page);
+      }
 
-  for (const file of directory.files) {
-    pages.push({
-      title: file.name,
-      url: '',
-      filename: file.name,
-      size: file.size
-    });
+      pages.push(page);
+    }
+
+    size = directory.size;
+    database.setCache({ pages, size });
+  } else {
+    const { data: cache } = database.getCache();
+    pages = cache.pages;
+    size = cache.size;
   }
 
   const html = Home({
-    size: 0,
+    size,
     pages,
-    count: pages.length
+    count: pages.length,
   });
 
   return c.html(html);
@@ -116,14 +130,14 @@ app.post('/add', async (c) => {
   const path = join(ARCHIVE_PATH, filename);
 
   const cmd = new Deno.Command('monolith', {
-    args: [`--output=${path}`, ...monolithOpts, url]
+    args: [`--output=${path}`, ...monolithOpts, url],
   });
 
   const output = await cmd.output();
 
   if (!output.success) {
     const html = Add({
-      error: 'Unable to save page. Please try again or check the URL.'
+      error: 'Unable to save page. Please try again or check the URL.',
     });
 
     console.error(output);
@@ -137,13 +151,10 @@ app.post('/add', async (c) => {
   try {
     const result = database.addPage(page);
     if (!result.ok) throw result.error;
-
-    c.header('location', '/');
-    c.status(302);
-    return c.text('302');
+    return c.redirect('/');
   } catch (e) {
     const html = Add({
-      error: 'Unable to save page. Please try again or check the URL.'
+      error: 'Unable to save page. Please try again or check the URL.',
     });
 
     console.error(e);
@@ -152,10 +163,37 @@ app.post('/add', async (c) => {
   }
 });
 
-// app.get('/delete/:filename', async (c) => {
-//   const filename = c.req.param('filename');
-  
-//   return c.html('delete time');
-// });
+app.get('/delete/:filename', (c) => {
+  const filename = c.req.param('filename');
+  const { data: page, error } = database.getPage(filename);
+
+  if (!page || error) {
+    c.status(404);
+    return c.text('404');
+  } else {
+    const { title } = page;
+    const html = Delete({ filename, title });
+    return c.html(html);
+  }
+});
+
+app.post('/delete/:filename', async (c) => {
+  const filename = c.req.param('filename');
+  const page = database.getPage(filename);
+
+  try {
+    if (!page.data || page.error) throw Error('Page with that ID does not exist');
+
+    const deletion = database.deletePage(page.data.filename);
+    if (!deletion.ok) throw deletion.error;
+
+    await Deno.remove(join(ARCHIVE_PATH, page.data.filename));
+    return c.redirect('/');
+  } catch (e) {
+    console.error(e);
+    c.status(500);
+    return c.text('500');
+  }
+});
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);
