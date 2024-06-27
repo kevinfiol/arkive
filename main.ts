@@ -1,5 +1,6 @@
 import { Hono } from '@hono/hono';
 import { serveStatic } from '@hono/hono/deno';
+import { secureHeaders } from '@hono/hono/secure-headers';
 import { loadSync } from '@std/dotenv';
 import { join, resolve } from '@std/path';
 import { existsSync } from '@std/fs';
@@ -29,6 +30,7 @@ const ARCHIVE_PATH = join(DATA_PATH, './archive');
 });
 
 const app = new Hono();
+app.use(secureHeaders());
 
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 
@@ -194,6 +196,15 @@ app.post('/delete/:filename', async (c) => {
     c.status(500);
     return c.text('500');
   }
+});
+
+app.post('/edit', async (c) => {
+  const form = await c.req.formData();
+  const url = form.get('url') as string;
+  const title = form.get('title') as string;
+  const filename = form.get('filename') as string;
+
+  
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

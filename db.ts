@@ -142,6 +142,24 @@ export function deletePage(filename: string) {
   return { ok, error };
 }
 
+export function editPage(filename: string, title: string, url: string) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const update = db.prepare(`
+      
+    `);
+
+    const changes = update.run({  })
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
 export function getPagesData(files: Array<{ name: string; size: number }>) {
   const data: { [filename: string]: Page } = {};
   let error = undefined;
