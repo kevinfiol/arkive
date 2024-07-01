@@ -377,6 +377,8 @@
     "https://esm.sh/v135/cookie@0.6.0/denonext/cookie.mjs": "688128a8a735ce2a9f09fba0051d6f4f7230fd9816a353f5dc75ac40defc1e79",
     "https://esm.sh/v135/iron-session@8.0.1/denonext/iron-session.mjs": "9e8e5e9eb12a5d308ef89fec12fec9e27aa1dd1f588cd5b47cc3b58384e91756",
     "https://esm.sh/v135/iron-webcrypto@1.0.0/denonext/iron-webcrypto.mjs": "7432b42df5208c6d6c9c5be75bc04799bb87cc4ee93c451197eb42f90bdf4ef2",
+    "https://esm.sh/v135/tiny-lru@11.2.6": "4333f400d4e143f65a1f6bdb325c8af7c0e50a2b15bac1c44b204b69128f8883",
+    "https://esm.sh/v135/tiny-lru@11.2.6/denonext/tiny-lru.mjs": "2005e18892dbb9ea4a30365f6f9d07e9f75ce324d5271063f6f4431d1b87181e",
     "https://esm.sh/v135/uncrypto@0.1.3/denonext/uncrypto.mjs": "3f679060ae6da59416ecc125dee58b63dcbb48d6ca175bb434a1ecfba331312e"
   },
   "workspace": {

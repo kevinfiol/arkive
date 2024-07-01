@@ -10,8 +10,29 @@ export const db = new Database(join(DATA_PATH, DB_FILENAME));
 // use WAL mode
 db.exec('pragma journal_mode = WAL');
 
+export function updateModified(isoTimestamp: string) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const update = db.prepare(`
+      update metadata
+      set modified_time = :modifiedTime
+      where rowid = 1
+    `);
+
+    const changes = update.run({ modifiedTime: isoTimestamp });
+    if (changes < 1) throw Error('Unable to update modified_time');
+  } catch (e) {
+    ok = false;
+    error = e;
+  }
+
+  return { ok, error };
+}
+
 export function checkModified(isoTimestamp: string) {
-  let changed = true;
+  let changed = true; // lean on updating
   let error = undefined;
 
   try {
@@ -25,13 +46,8 @@ export function checkModified(isoTimestamp: string) {
     changed = row?.modified_time !== isoTimestamp;
 
     if (changed) {
-      const update = db.prepare(`
-        update metadata
-        set modified_time = :modifiedTime
-        where rowid = 1;
-      `);
-
-      update.run({ modifiedTime: isoTimestamp });
+      const update = updateModified(isoTimestamp);
+      if (!update.ok) throw update.error;
     }
   } catch (e) {
     error = e;
@@ -132,8 +148,8 @@ export function deletePage(filename: string) {
       where filename = :filename
     `);
 
-    const res = deletion.run({ filename });
-    console.log({ res });
+    const changes = deletion.run({ filename });
+    if (changes < 1) throw Error('Unable to delete Page');
   } catch (e) {
     error = e;
     ok = false;
@@ -148,10 +164,18 @@ export function editPage(filename: string, title: string, url: string) {
 
   try {
     const update = db.prepare(`
-      
+      update page
+      set title = :title,
+          url = :url
+      where filename = :filename
     `);
 
-    const changes = update.run({  })
+    const changes = update.run({ filename, title, url });
+    if (changes < 1) throw Error('Unable to edit Page');
+
+    // bust cache
+    const isoTimestamp = (new Date()).toISOString();
+    updateModified(isoTimestamp);
   } catch (e) {
     error = e;
     ok = false;

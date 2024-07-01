@@ -1,6 +1,6 @@
-import { db } from '../db.ts';
+import type { Database } from '@db/sqlite';
 
-try {
+export default function(db: Database) {
   const create = db.prepare(`
     create table if not exists page (
       title text not null,
@@ -11,6 +11,4 @@ try {
   `);
 
   create.run();
-} catch (e) {
-  console.error(e);
 }

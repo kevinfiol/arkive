@@ -1,10 +1,13 @@
 import { Hono } from '@hono/hono';
 import { serveStatic } from '@hono/hono/deno';
 import { secureHeaders } from '@hono/hono/secure-headers';
+import { lru } from 'tiny-lru';
 import { loadSync } from '@std/dotenv';
-import { join, resolve } from '@std/path';
+import { join } from '@std/path';
 import { existsSync } from '@std/fs';
-import { DATA_PATH, MIMES, MONOLITH_OPTIONS } from './constants.ts';
+import { Add, Delete, Home, Initialize, Login } from './templates/index.ts';
+import { DATA_PATH, MIMES, MONOLITH_OPTIONS, ZERO_BYTES, ACCESS_TOKEN_NAME, SESSION_MAX_AGE } from './constants.ts';
+import * as database from './db.ts';
 import {
   createEmptyPage,
   createFilename,
@@ -12,11 +15,8 @@ import {
   getSize,
   parseDirectory,
 } from './util.ts';
-import * as database from './db.ts';
-import { Delete, Home } from './templates.ts';
-import { Add } from './templates.ts';
+
 import type { Page } from './types.ts';
-import { ZERO_BYTES } from './constants.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -29,10 +29,27 @@ const ARCHIVE_PATH = join(DATA_PATH, './archive');
   if (!existsSync(path)) Deno.mkdirSync(path);
 });
 
+const session = lru(100, SESSION_MAX_AGE)
 const app = new Hono();
+
 app.use(secureHeaders());
 
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
+
+app.on(['GET', 'POST'], ['/', '/add', '/delete/*'], async (c, next) => {
+  const token = c.req.header(ACCESS_TOKEN_NAME);
+  const isAuth = session.get(token);
+  if (isAuth) return next();
+  await Promise.resolve();
+
+  if (c.req.method === 'GET') {
+    const html = Initialize();
+    return c.html(html);
+  }
+
+  c.status(401);
+  return c.text('Unauthorized');
+});
 
 app.get('/archive/*.html', async (c) => {
   const url = new URL(c.req.url);
@@ -184,7 +201,9 @@ app.post('/delete/:filename', async (c) => {
   const page = database.getPage(filename);
 
   try {
-    if (!page.data || page.error) throw Error('Page with that ID does not exist');
+    if (!page.data || page.error) {
+      throw Error('Page with that ID does not exist');
+    }
 
     const deletion = database.deletePage(page.data.filename);
     if (!deletion.ok) throw deletion.error;
@@ -204,7 +223,15 @@ app.post('/edit', async (c) => {
   const title = form.get('title') as string;
   const filename = form.get('filename') as string;
 
-  
+  try {
+    database.editPage(filename, title, url);
+    c.status(200);
+    return c.text('200');
+  } catch (e) {
+    console.error(e);
+    c.status(500);
+    return c.text('500');
+  }
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

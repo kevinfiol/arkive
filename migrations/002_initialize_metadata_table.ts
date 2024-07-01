@@ -1,14 +1,12 @@
-import { db } from '../db.ts';
+import type { Database } from '@db/sqlite';
 
-try {
-  const now = (new Date()).toISOString();
+export default function(db: Database) {
+  const modified_time = (new Date()).toISOString();
 
   const insert = db.prepare(`
     insert into metadata (modified_time, page_cache)
     values (:modified_time, :page_cache)
   `);
 
-  insert.run({ modified_time: now, page_cache: null });
-} catch (e) {
-  console.error(e);
+  insert.run({ modified_time, page_cache: null });
 }
