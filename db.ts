@@ -206,3 +206,84 @@ export function getPagesData(files: Array<{ name: string; size: number }>) {
 
   return { data, error };
 }
+
+export function createUser(hashed: string) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const insert = db.prepare(`
+      insert into user (hashed)
+      values(:hashed)
+    `);
+
+    const changes = insert.run({ hashed });
+    if (changes !== 1) throw Error('Unable to create user');
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
+export function initialize() {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const update = db.prepare(`
+      update metadata
+      set initialized = true
+      where rowid = 1
+    `);
+
+    const changes = update.run();
+    if (changes < 1) throw Error ('Unable to initialize');
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
+export function checkInitialized() {
+  let init = false;
+  let error = undefined;
+
+  try {
+    const select = db.prepare(`
+      select initialized
+      from metadata
+      where rowid = 1
+    `);
+
+    const row = select.get<{ initialized: boolean }>();
+    init = row ? row.initialized : false;
+  } catch (e) {
+    error = e;
+  }
+
+  return { data: init, error };
+}
+
+export function getHashedPassword() {
+  let hashed = '';
+  let error = undefined;
+
+  try {
+    const select = db.prepare(`
+      select hashed
+      from user
+      where rowid = 1
+    `);
+
+    const row = select.get<{ hashed: string }>();
+    if (row) hashed = row.hashed;
+  } catch (e) {
+    error = e;
+  }
+
+  return { data: hashed, error };
+}

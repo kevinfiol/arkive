@@ -3,20 +3,29 @@
   "packages": {
     "specifiers": {
       "jsr:@db/sqlite@^0.11.1": "jsr:@db/sqlite@0.11.1",
+      "jsr:@denorg/scrypt@^4.4.4": "jsr:@denorg/scrypt@4.4.4",
       "jsr:@denosaurs/plug@1": "jsr:@denosaurs/plug@1.0.6",
       "jsr:@hono/hono@^4.4.0": "jsr:@hono/hono@4.4.0",
+      "jsr:@std/assert@0.222.1": "jsr:@std/assert@0.222.1",
       "jsr:@std/assert@^0.217.0": "jsr:@std/assert@0.217.0",
       "jsr:@std/assert@^0.221.0": "jsr:@std/assert@0.221.0",
+      "jsr:@std/assert@^0.222.1": "jsr:@std/assert@0.222.1",
       "jsr:@std/assert@^0.224.0": "jsr:@std/assert@0.224.0",
+      "jsr:@std/bytes@^0.224.0": "jsr:@std/bytes@0.224.0",
+      "jsr:@std/crypto@0.222.1": "jsr:@std/crypto@0.222.1",
+      "jsr:@std/crypto@^0.224.0": "jsr:@std/crypto@0.224.0",
       "jsr:@std/dotenv@^0.224.0": "jsr:@std/dotenv@0.224.0",
+      "jsr:@std/encoding@0.222.1": "jsr:@std/encoding@0.222.1",
       "jsr:@std/encoding@^0.221.0": "jsr:@std/encoding@0.221.0",
-      "jsr:@std/encoding@^0.224.0": "jsr:@std/encoding@0.224.3",
+      "jsr:@std/encoding@^0.222.1": "jsr:@std/encoding@0.222.1",
       "jsr:@std/fmt@^0.221.0": "jsr:@std/fmt@0.221.0",
+      "jsr:@std/fmt@^0.222.1": "jsr:@std/fmt@0.222.1",
       "jsr:@std/fs@^0.221.0": "jsr:@std/fs@0.221.0",
       "jsr:@std/fs@^0.224.0": "jsr:@std/fs@0.224.0",
       "jsr:@std/path@0.217": "jsr:@std/path@0.217.0",
       "jsr:@std/path@^0.221.0": "jsr:@std/path@0.221.0",
-      "jsr:@std/path@^0.224.0": "jsr:@std/path@0.224.0"
+      "jsr:@std/path@^0.224.0": "jsr:@std/path@0.224.0",
+      "jsr:@std/uuid@^0.224.0": "jsr:@std/uuid@0.224.0"
     },
     "jsr": {
       "@db/sqlite@0.11.1": {
@@ -24,6 +33,14 @@
         "dependencies": [
           "jsr:@denosaurs/plug@1",
           "jsr:@std/path@0.217"
+        ]
+      },
+      "@denorg/scrypt@4.4.4": {
+        "integrity": "81e82ad4627e91f4c98c1789b3382667f366a61702642ad5d3a8dddf7b444905",
+        "dependencies": [
+          "jsr:@std/assert@0.222.1",
+          "jsr:@std/crypto@0.222.1",
+          "jsr:@std/encoding@0.222.1"
         ]
       },
       "@denosaurs/plug@1.0.6": {
@@ -44,8 +61,27 @@
       "@std/assert@0.221.0": {
         "integrity": "a5f1aa6e7909dbea271754fd4ab3f4e687aeff4873b4cef9a320af813adb489a"
       },
+      "@std/assert@0.222.1": {
+        "integrity": "691637161ee584a9919d1f9950ddd1272feb8e0a19e83aa5b7563cedaf73d74c",
+        "dependencies": [
+          "jsr:@std/fmt@^0.222.1"
+        ]
+      },
       "@std/assert@0.224.0": {
         "integrity": "8643233ec7aec38a940a8264a6e3eed9bfa44e7a71cc6b3c8874213ff401967f"
+      },
+      "@std/bytes@0.224.0": {
+        "integrity": "a2250e1d0eb7d1c5a426f21267ab9bdeac2447fa87a3d0d1a467d3f7a6058e49"
+      },
+      "@std/crypto@0.222.1": {
+        "integrity": "d5b9e6c704fadbcc384cd42c0b603ad4aea710ece0ff26426602681b64fd237c",
+        "dependencies": [
+          "jsr:@std/assert@^0.222.1",
+          "jsr:@std/encoding@^0.222.1"
+        ]
+      },
+      "@std/crypto@0.224.0": {
+        "integrity": "154ef3ff08ef535562ef1a718718c5b2c5fc3808f0f9100daad69e829bfcdf2d"
       },
       "@std/dotenv@0.224.0": {
         "integrity": "d9234cdf551507dcda60abb6c474289843741d8c07ee8ce540c60f5c1b220a1d"
@@ -53,11 +89,14 @@
       "@std/encoding@0.221.0": {
         "integrity": "d1dd76ef0dc5d14088411e6dc1dede53bf8308c95d1537df1214c97137208e45"
       },
-      "@std/encoding@0.224.3": {
-        "integrity": "5e861b6d81be5359fad4155e591acf17c0207b595112d1840998bb9f476dbdaf"
+      "@std/encoding@0.222.1": {
+        "integrity": "fb6c1d38722feebc8d4a5efa3eb2039ecec0d50d053186240484d0c4a4ce1006"
       },
       "@std/fmt@0.221.0": {
         "integrity": "379fed69bdd9731110f26b9085aeb740606b20428ce6af31ef6bd45ef8efa62a"
+      },
+      "@std/fmt@0.222.1": {
+        "integrity": "ec3382f9b0261c1ab1a5c804aa355d816515fa984cdd827ed32edfb187c0a722"
       },
       "@std/fs@0.221.0": {
         "integrity": "028044450299de8ed5a716ade4e6d524399f035513b85913794f4e81f07da286",
@@ -89,6 +128,14 @@
         "integrity": "55bca6361e5a6d158b9380e82d4981d82d338ec587de02951e2b7c3a24910ee6",
         "dependencies": [
           "jsr:@std/assert@^0.224.0"
+        ]
+      },
+      "@std/uuid@0.224.0": {
+        "integrity": "1cfe259cff889543c7424c4f5ebbcc5c0b50d1df69b1d75572382d839d8e043b",
+        "dependencies": [
+          "jsr:@std/assert@^0.224.0",
+          "jsr:@std/bytes@^0.224.0",
+          "jsr:@std/crypto@^0.224.0"
         ]
       }
     }
@@ -384,9 +431,9 @@
   "workspace": {
     "dependencies": [
       "jsr:@db/sqlite@^0.11.1",
+      "jsr:@denorg/scrypt@^4.4.4",
       "jsr:@hono/hono@^4.4.0",
       "jsr:@std/dotenv@^0.224.0",
-      "jsr:@std/encoding@^0.224.0",
       "jsr:@std/fs@^0.224.0",
       "jsr:@std/http@^0.224.0",
       "jsr:@std/path@^0.224.0",

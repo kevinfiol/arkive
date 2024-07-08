@@ -1,29 +1,6 @@
 import { walk } from '@std/fs';
 import { resolve } from '@std/path';
-import { encodeBase64 } from '@std/encoding/base64';
 import type { Page } from './types.ts';
-
-let SECRET_KEY: CryptoKey | undefined = undefined;
-
-export async function encodeMessage(message: string, secret: string) {
-  const encoder = new TextEncoder();
-  const algorithm = 'HMAC';
-
-  if (!SECRET_KEY) {
-    const buffer = encoder.encode(secret);
-    SECRET_KEY = await crypto.subtle.importKey(
-      'raw',
-      buffer,
-      { name: algorithm, hash: 'SHA-256' },
-      true,
-      ['sign', 'verify'],
-    );
-  }
-
-  const data = encoder.encode(message);
-  const result = await crypto.subtle.sign(algorithm, SECRET_KEY, data.buffer);
-  return encodeBase64(new Uint8Array(result));
-}
 
 export function createSlug(text = '') {
   const lines = text.split('\n');

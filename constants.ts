@@ -1,4 +1,4 @@
-export const ACCESS_TOKEN_NAME = 'ARKIVE_ACCESS_TOKEN';
+export const ACCESS_TOKEN_NAME = 'ARKIVE_SESSION_COOKIE';
 
 export const SESSION_MAX_AGE = 7 * 8.64 * Math.pow(10, 7)
 

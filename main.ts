@@ -1,10 +1,13 @@
 import { Hono } from '@hono/hono';
+import { setSignedCookie, getSignedCookie, deleteCookie } from '@hono/hono/cookie';
 import { serveStatic } from '@hono/hono/deno';
 import { secureHeaders } from '@hono/hono/secure-headers';
 import { lru } from 'tiny-lru';
 import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
+import { v4 } from "@std/uuid";
+import { hash, verify } from '@denorg/scrypt';
 import { Add, Delete, Home, Initialize, Login } from './templates/index.ts';
 import { DATA_PATH, MIMES, MONOLITH_OPTIONS, ZERO_BYTES, ACCESS_TOKEN_NAME, SESSION_MAX_AGE } from './constants.ts';
 import * as database from './db.ts';
@@ -22,6 +25,7 @@ import type { Page } from './types.ts';
 loadSync({ export: true });
 
 const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) ?? 8080;
+const SESSION_SECRET = Deno.env.get('SESSION_SECRET') ?? 'hunter2';
 const ARCHIVE_PATH = join(DATA_PATH, './archive');
 
 // create directories
@@ -37,19 +41,72 @@ app.use(secureHeaders());
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 
 app.on(['GET', 'POST'], ['/', '/add', '/delete/*'], async (c, next) => {
-  const token = c.req.header(ACCESS_TOKEN_NAME);
-  const isAuth = session.get(token);
-  if (isAuth) return next();
-  await Promise.resolve();
+  const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
+  const isValidToken = token && session.get(token) && v4.validate(token);
+
+  if (isValidToken) {
+    return next();
+  } else if (token) {
+    session.delete(token);
+  }
+
+  deleteCookie(c, ACCESS_TOKEN_NAME);
 
   if (c.req.method === 'GET') {
-    const html = Initialize();
+    const { data: isInit } = database.checkInitialized();
+    if (isInit) return c.redirect('/login');
+
+    const query = c.req.query('init');
+    const error = query === 'confirm_error'
+      ? 'Passwords do not match.'
+      : query === 'init_error'
+      ? 'Could not initialize user. Check system logs.'
+      : '';
+
+    const html = Initialize({ error });
     return c.html(html);
   }
 
   c.status(401);
   return c.text('Unauthorized');
 });
+
+app.post('/init', async (c) => {
+  const form = await c.req.formData();
+
+  const password = form.get('password') as string;
+  const confirm = form.get('confirm') as string;
+
+  if (password !== confirm) {
+    return c.redirect('/?init=confirm_error', 302);
+  }
+
+  const hashed = hash(password);
+  const { error } = database.createUser(hashed);
+  
+  if (error) {
+    console.error(error);
+    return c.redirect('/?init=init_error', 302);
+  }
+
+  // store token in memory
+  const sessionToken = crypto.randomUUID();
+  session.set(sessionToken, true);
+
+  // set cookie
+  await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'Strict',
+    expires: new Date(Date.now() + SESSION_MAX_AGE)
+  });
+
+  // set init flag
+  database.initialize();
+
+  // set cookie with session token
+  return c.redirect('/');
+})
 
 app.get('/archive/*.html', async (c) => {
   const url = new URL(c.req.url);
@@ -232,6 +289,57 @@ app.post('/edit', async (c) => {
     c.status(500);
     return c.text('500');
   }
+});
+
+app.get('/logout', async (c) => {
+  const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
+
+  if (token) {
+    deleteCookie(c, ACCESS_TOKEN_NAME);
+    session.delete(token);
+  }
+
+  return c.redirect('/login');
+});
+
+app.get('/login', async (c) => {
+  const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
+  const isValidToken = token && session.get(token) && v4.validate(token);
+  if (isValidToken) return c.redirect('/');
+
+  const { data: isInit } = database.checkInitialized();
+  if (!isInit) return c.redirect('/');
+
+  const html = Login();
+  return c.html(html);
+});
+
+app.post('/login', async (c) => {
+  const form = await c.req.formData();
+
+  const password = form.get('password') as string;
+  const { data: hashed } = database.getHashedPassword();
+  const isValid = verify(password, hashed);
+
+  if (!isValid) {
+    const html = Login({ error: 'Invalid password' });
+    c.status(500);
+    return c.html(html);
+  }
+
+  // store token in memory
+  const sessionToken = crypto.randomUUID();
+  session.set(sessionToken, true);
+
+  // set cookie
+  await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'Strict',
+    expires: new Date(Date.now() + SESSION_MAX_AGE)
+  });
+
+  return c.redirect('/');
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);
