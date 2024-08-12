@@ -1,10 +1,13 @@
 import { Database } from '@db/sqlite';
 import { join } from '@std/path';
+import { existsSync } from '@std/fs';
 import { DATA_PATH, ZERO_BYTES } from './constants.ts';
 import type { Page, PageCache } from './types.ts';
 
 const DB_FILENAME = 'arkive.db';
 
+// ensure data path exists before opening/creating database
+if (!existsSync(DATA_PATH)) Deno.mkdirSync(DATA_PATH);
 export const db = new Database(join(DATA_PATH, DB_FILENAME));
 
 // use WAL mode
@@ -239,7 +242,7 @@ export function initialize() {
     `);
 
     const changes = update.run();
-    if (changes < 1) throw Error ('Unable to initialize');
+    if (changes < 1) throw Error('Unable to initialize');
   } catch (e) {
     error = e;
     ok = false;

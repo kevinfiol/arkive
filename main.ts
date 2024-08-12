@@ -1,15 +1,26 @@
 import { Hono } from '@hono/hono';
-import { setSignedCookie, getSignedCookie, deleteCookie } from '@hono/hono/cookie';
+import {
+  deleteCookie,
+  getSignedCookie,
+  setSignedCookie,
+} from '@hono/hono/cookie';
 import { serveStatic } from '@hono/hono/deno';
 import { secureHeaders } from '@hono/hono/secure-headers';
 import { lru } from 'tiny-lru';
 import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
-import { v4 } from "@std/uuid";
+import { v4 } from '@std/uuid';
 import { hash, verify } from '@denorg/scrypt';
 import { Add, Delete, Home, Initialize, Login } from './templates/index.ts';
-import { DATA_PATH, MIMES, MONOLITH_OPTIONS, ZERO_BYTES, ACCESS_TOKEN_NAME, SESSION_MAX_AGE } from './constants.ts';
+import {
+  ACCESS_TOKEN_NAME,
+  DATA_PATH,
+  MIMES,
+  MONOLITH_OPTIONS,
+  SESSION_MAX_AGE,
+  ZERO_BYTES,
+} from './constants.ts';
 import * as database from './db.ts';
 import {
   createEmptyPage,
@@ -25,15 +36,14 @@ import type { Page } from './types.ts';
 loadSync({ export: true });
 
 const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) ?? 8080;
-const SESSION_SECRET = Deno.env.get('SESSION_SECRET') ?? 'hunter2';
+const SESSION_SECRET = Deno.env.get('SESSION_SECRET') || 'hunter2';
 const ARCHIVE_PATH = join(DATA_PATH, './archive');
 
-// create directories
-[DATA_PATH, ARCHIVE_PATH].forEach((path) => {
-  if (!existsSync(path)) Deno.mkdirSync(path);
-});
+// ensure archive path exists
+if (!existsSync(ARCHIVE_PATH)) Deno.mkdirSync(ARCHIVE_PATH);
 
-const session = lru(100, SESSION_MAX_AGE)
+// store sessions in memory
+const session = lru(100, SESSION_MAX_AGE);
 const app = new Hono();
 
 app.use(secureHeaders());
@@ -83,7 +93,7 @@ app.post('/init', async (c) => {
 
   const hashed = hash(password);
   const { error } = database.createUser(hashed);
-  
+
   if (error) {
     console.error(error);
     return c.redirect('/?init=init_error', 302);
@@ -98,7 +108,7 @@ app.post('/init', async (c) => {
     secure: true,
     httpOnly: true,
     sameSite: 'Strict',
-    expires: new Date(Date.now() + SESSION_MAX_AGE)
+    expires: new Date(Date.now() + SESSION_MAX_AGE),
   });
 
   // set init flag
@@ -106,7 +116,7 @@ app.post('/init', async (c) => {
 
   // set cookie with session token
   return c.redirect('/');
-})
+});
 
 app.get('/archive/*.html', async (c) => {
   const url = new URL(c.req.url);
@@ -337,7 +347,7 @@ app.post('/login', async (c) => {
     secure: true,
     httpOnly: true,
     sameSite: 'Strict',
-    expires: new Date(Date.now() + SESSION_MAX_AGE)
+    expires: new Date(Date.now() + SESSION_MAX_AGE),
   });
 
   return c.redirect('/');

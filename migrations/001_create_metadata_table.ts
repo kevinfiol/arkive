@@ -1,6 +1,6 @@
 import type { Database } from '@db/sqlite';
 
-export default function(db: Database) {
+export default function (db: Database) {
   const create = db.prepare(`
     create table if not exists metadata (
       initialized boolean default false not null,
@@ -9,5 +9,5 @@ export default function(db: Database) {
     );
   `);
 
-  create.run()
+  create.run();
 }

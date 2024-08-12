@@ -18,7 +18,7 @@
     "tiny-lru": "https://esm.sh/v135/tiny-lru@11.2.6"
   },
   "lint": {
-    "include": ["*.ts"],
+    "include": ["**/*.ts"],
     "exclude": ["lib/", "static/"],
     "rules": {
       "tags": ["recommended"],
@@ -32,7 +32,7 @@
     "semiColons": true,
     "singleQuote": true,
     "proseWrap": "preserve",
-    "include": ["*.ts"],
-    "exclude": ["lib/", "static/", "templates.ts"]
+    "include": ["**/*.ts"],
+    "exclude": ["lib/", "static/", "templates/"]
   }
 }

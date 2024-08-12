@@ -1,6 +1,6 @@
 import type { Database } from '@db/sqlite';
 
-export default function(db: Database) {
+export default function (db: Database) {
   const modified_time = (new Date()).toISOString();
 
   const insert = db.prepare(`

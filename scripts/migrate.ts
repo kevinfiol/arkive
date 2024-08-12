@@ -1,6 +1,5 @@
 import { walk } from '@std/fs';
 import { join } from '@std/path';
-import { Statement } from '@db/sqlite';
 import { db } from '../db.ts';
 
 // match files that start with at least one number and underscore, e.g. 001_create, or 1_create are fine
@@ -31,12 +30,14 @@ for await (const file of walk('./migrations')) {
   migrations.push({
     id: Number(id),
     name,
-    path: 'file://' + join(Deno.cwd(), file.path)
+    path: 'file://' + join(Deno.cwd(), file.path),
   });
 }
 
 const latest = migrations[migrations.length - 1];
-if (latest.id !== migrations.length) throw Error('Inconsistent migration numbering.');
+if (latest.id !== migrations.length) {
+  throw Error('Inconsistent migration numbering.');
+}
 
 const current = getCurrent();
 const needed = migrations.slice(current ? current.id : 0);
@@ -69,5 +70,5 @@ function getCurrent() {
     limit 1
   `);
 
-  return select.get<{ id: number, name: string, created_at: string }>();
+  return select.get<{ id: number; name: string; created_at: string }>();
 }
