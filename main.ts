@@ -160,7 +160,8 @@ app.get('/', async (c) => {
         page = pagesData[file.name];
       } else {
         page = createEmptyPage(file.name, file.size);
-        database.addPage(page);
+        const { error } = database.addPage(page);
+        if (error) console.error(error);
       }
 
       pages.push(page);
