@@ -13,15 +13,14 @@
 
   let controller;
 
-  const searchArchive = debounce((input = '') => {
+  const searchArchive = debounce((query = '') => {
     if (controller !== undefined) controller.abort();
     controller = new AbortController();
 
-    fetch('/search', {
-      method: 'POST',
+    fetch(`/search?query=${query}`, {
+      method: 'GET',
       signal: controller.signal,
-      headers: new Headers({ 'content-type': 'application/json' }),
-      body: JSON.stringify({ input })
+      headers: new Headers({ 'content-type': 'application/json' })
     }).then((res) => {
       console.log(res);
     }).catch((err) => {

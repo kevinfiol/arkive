@@ -50,7 +50,7 @@ app.use(secureHeaders());
 
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 
-app.on(['GET', 'POST'], ['/', '/add', '/delete/*'], async (c, next) => {
+app.on(['GET', 'POST'], ['/', '/add', '/delete/*', '/search'], async (c, next) => {
   const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
   const isValidToken = token && session.get(token) && v4.validate(token);
 
@@ -352,6 +352,15 @@ app.post('/login', async (c) => {
   });
 
   return c.redirect('/');
+});
+
+app.get('/search', (c) => {
+  const query = c.req.query('query') ?? '';
+
+  const results = database.searchPages(query);
+  console.log(results);
+
+  return c.json(results);
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

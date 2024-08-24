@@ -290,3 +290,22 @@ export function getHashedPassword() {
 
   return { data: hashed, error };
 }
+
+export function searchPages(query: string) {
+  let results: { filename: Page['filename'] }[] = [];
+  let error = undefined;
+
+  try {
+    const select = db.prepare(`
+      select filename
+      from page_fts
+      where page_fts match :query
+    `);
+
+    results = select.all<{ filename: Page['filename'] }>({ query });
+  } catch (e) {
+    error = e;
+  }
+
+  return { data: results, error };
+}
