@@ -1,5 +1,5 @@
 import { html } from '@hono/hono/html';
-import { MONOLITH_OPTIONS } from '../constants.ts';
+import { MONOLITH_OPTIONS } from '../../constants.ts';
 
 export const MonolithOptions = () => html`
   <ul>

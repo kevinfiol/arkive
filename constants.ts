@@ -1,3 +1,5 @@
+import { NONCE } from '@hono/hono/secure-headers';
+
 export const ACCESS_TOKEN_NAME = 'ARKIVE_SESSION_COOKIE';
 
 export const SESSION_MAX_AGE = 7 * 8.64 * Math.pow(10, 7);
@@ -25,4 +27,20 @@ export const MIMES: Record<string, string> = {
   'ico': 'image/vnd.microsoft.icon',
   'svg': 'image/svg+xml',
   'html': 'text/html',
+};
+
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#browser_compatibility
+export const CONTENT_SECURITY_POLICY = {
+  defaultSrc: [NONCE, "'self'"],
+  scriptSrc: [NONCE, "'self'"],
+  scriptSrcAttr: ["'unsafe-inline'"],
+  baseUri: ["'self'"],
+  formAction: ["'self'"],
+  frameAncestors: ["'none'"],
+  imgSrc: ["'self'", 'data:'],
+  manifestSrc: ["'self'"],
+  mediaSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  upgradeInsecureRequests: [],
+  workerSrc: ["'self'"],
 };

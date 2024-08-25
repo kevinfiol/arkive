@@ -1,6 +1,6 @@
 import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
-import { MonolithOptions } from './monolith-options.ts';
+import { MonolithOptions } from './partial/monolith-options.ts';
 
 export const Add = ({ error = '' } = {}) => Layout('Save New Page', html`
   <main>

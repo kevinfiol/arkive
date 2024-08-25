@@ -1,7 +1,12 @@
 import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 
-export const Delete = ({ filename, title }: { filename: string, title: string }) => Layout('Delete Page', html`
+interface Props {
+  filename: string;
+  title: string;
+}
+
+export const Delete = ({ filename, title }: Props) => Layout('Delete Page', html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>

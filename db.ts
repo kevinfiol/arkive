@@ -187,12 +187,11 @@ export function editPage(filename: string, title: string, url: string) {
   return { ok, error };
 }
 
-export function getPagesData(files: Array<{ name: string; size: number }>) {
+export function getPagesData(filenames: string[]) {
   const data: { [filename: string]: Page } = {};
   let error = undefined;
 
   try {
-    const filenames = files.map((file) => file.name);
     const paramStr = Array(filenames.length).fill('?').join(',');
     const select = db.prepare(`
       select *

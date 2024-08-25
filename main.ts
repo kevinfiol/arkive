@@ -5,16 +5,27 @@ import {
   setSignedCookie,
 } from '@hono/hono/cookie';
 import { serveStatic } from '@hono/hono/deno';
-import { secureHeaders } from '@hono/hono/secure-headers';
+import {
+  secureHeaders,
+  type SecureHeadersVariables,
+} from '@hono/hono/secure-headers';
 import { lru } from 'tiny-lru';
 import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
 import { v4 } from '@std/uuid';
 import { hash, verify } from '@denorg/scrypt';
-import { Add, Delete, Home, Initialize, Login } from './templates/index.ts';
+import {
+  Add,
+  Delete,
+  Home,
+  Initialize,
+  Login,
+  PageTile,
+} from './templates/index.ts';
 import {
   ACCESS_TOKEN_NAME,
+  CONTENT_SECURITY_POLICY,
   DATA_PATH,
   MIMES,
   MONOLITH_OPTIONS,
@@ -44,42 +55,50 @@ if (!existsSync(ARCHIVE_PATH)) Deno.mkdirSync(ARCHIVE_PATH);
 
 // store sessions in memory
 const session = lru(100, SESSION_MAX_AGE);
-const app = new Hono();
+const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
-app.use(secureHeaders());
+app.use(
+  secureHeaders({
+    contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+  }),
+);
 
 app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 
-app.on(['GET', 'POST'], ['/', '/add', '/delete/*', '/search'], async (c, next) => {
-  const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
-  const isValidToken = token && session.get(token) && v4.validate(token);
+app.on(
+  ['GET', 'POST'],
+  ['/', '/add', '/delete/*', '/search'],
+  async (c, next) => {
+    const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
+    const isValidToken = token && session.get(token) && v4.validate(token);
 
-  if (isValidToken) {
-    return next();
-  } else if (token) {
-    session.delete(token);
-  }
+    if (isValidToken) {
+      return next();
+    } else if (token) {
+      session.delete(token);
+    }
 
-  deleteCookie(c, ACCESS_TOKEN_NAME);
+    deleteCookie(c, ACCESS_TOKEN_NAME);
 
-  if (c.req.method === 'GET') {
-    const { data: isInit } = database.checkInitialized();
-    if (isInit) return c.redirect('/login');
+    if (c.req.method === 'GET') {
+      const { data: isInit } = database.checkInitialized();
+      if (isInit) return c.redirect('/login');
 
-    const query = c.req.query('init');
-    const error = query === 'confirm_error'
-      ? 'Passwords do not match.'
-      : query === 'init_error'
-      ? 'Could not initialize user. Check system logs.'
-      : '';
+      const query = c.req.query('init');
+      const error = query === 'confirm_error'
+        ? 'Passwords do not match.'
+        : query === 'init_error'
+        ? 'Could not initialize user. Check system logs.'
+        : '';
 
-    const html = Initialize({ error });
-    return c.html(html);
-  }
+      const html = Initialize({ error });
+      return c.html(html);
+    }
 
-  c.status(401);
-  return c.text('Unauthorized');
-});
+    c.status(401);
+    return c.text('Unauthorized');
+  },
+);
 
 app.post('/init', async (c) => {
   const form = await c.req.formData();
@@ -141,6 +160,7 @@ app.get('/archive/*.html', async (c) => {
 });
 
 app.get('/', async (c) => {
+  const nonce = c.get('secureHeadersNonce') ?? '';
   const info = await Deno.stat(ARCHIVE_PATH);
   const date = info.mtime ?? new Date();
   const modifiedTime = date.toISOString();
@@ -151,7 +171,8 @@ app.get('/', async (c) => {
 
   if (hasChanged) {
     const directory = await parseDirectory(ARCHIVE_PATH);
-    const { data: pagesData } = database.getPagesData(directory.files);
+    const filenames = directory.files.map((file) => file.name);
+    const { data: pagesData } = database.getPagesData(filenames);
 
     for (const file of directory.files) {
       let page;
@@ -179,6 +200,7 @@ app.get('/', async (c) => {
     size,
     pages,
     count: pages.length,
+    nonce,
   });
 
   return c.html(html);
@@ -356,11 +378,21 @@ app.post('/login', async (c) => {
 
 app.get('/search', (c) => {
   const query = c.req.query('query') ?? '';
+  let html = '';
 
-  const results = database.searchPages(query);
-  console.log(results);
+  const { data: results, error } = database.searchPages(query);
 
-  return c.json(results);
+  if (results.length > 0 && !error) {
+    const filenames = results.map((result) => result.filename);
+    const { data: pagesData } = database.getPagesData(filenames);
+
+    for (const filename of filenames) {
+      const page = pagesData[filename];
+      html += PageTile(page);
+    }
+  }
+
+  return c.text(html);
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);
