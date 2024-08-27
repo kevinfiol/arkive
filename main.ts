@@ -41,7 +41,7 @@ import {
   parseDirectory,
 } from './util.ts';
 
-import type { Page } from './types.ts';
+import type { Page, PageCache } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -67,7 +67,7 @@ app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
 
 app.on(
   ['GET', 'POST'],
-  ['/', '/add', '/delete/*', '/search'],
+  ['/', '/add', '/delete/*', '/api/*'],
   async (c, next) => {
     const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
     const isValidToken = token && session.get(token) && v4.validate(token);
@@ -376,7 +376,7 @@ app.post('/login', async (c) => {
   return c.redirect('/');
 });
 
-app.get('/search', (c) => {
+app.get('/api/search', (c) => {
   const query = c.req.query('query') ?? '';
   let html = '';
 
@@ -393,6 +393,19 @@ app.get('/search', (c) => {
   }
 
   return c.text(html);
+});
+
+app.get('/api/cache', (c) => {
+  const cache: PageCache = { pages: [], size: 0 };
+
+  const { data, error } = database.getCache();
+
+  if (!error) {
+    cache.pages = data.pages;
+    cache.size = data.size;
+  }
+
+  return c.json(cache);
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

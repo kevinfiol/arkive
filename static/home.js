@@ -1,5 +1,10 @@
+import { PageTile } from './components.js';
+import { mount } from './umhi.js';
+
 const $ = (query) => document.querySelector(query);
 
+let mounted = false;
+let pagesCache = undefined;
 let editingEl = undefined;
 let editingFilename = '';
 
@@ -16,12 +21,16 @@ const urlInput = editForm.querySelector('[name="url"]');
 
 let controller;
 
+fetch('/api/cache')
+  .then((r) => r.json())
+  .then(mountApp);
+
 const searchArchive = debounce((query = '') => {
   if (controller !== undefined) controller.abort();
   if (!query.trim()) return;
   controller = new AbortController();
 
-  fetch(`/search?query=${query}`, {
+  fetch(`/api/search?query=${query}`, {
     method: 'GET',
     signal: controller.signal,
     headers: new Headers({ 'content-type': 'application/json' })
@@ -76,6 +85,16 @@ window.openEditDialog = function(el) {
   urlInput.value = url ?? '';
   editingFilename = filename;
   editDialog.showModal();
+}
+
+function mountApp({ pages, size }) {
+  mounted = true;
+
+  const App = () => (
+    pages.map(PageTile)
+  );
+
+  mount(articlesContainer, App);
 }
 
 async function editPage(formData) {
