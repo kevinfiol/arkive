@@ -1,100 +1,88 @@
-import { PageTile } from './components.js';
-import { mount } from './umhi.js';
-
 const $ = (query) => document.querySelector(query);
 
-let mounted = false;
-let pagesCache = undefined;
-let editingEl = undefined;
-let editingFilename = '';
+const Articles = {
+  container: $('.articles')
+};
 
-const searchBar = $('#search-bar');
-const editForm = $('#edit-form');
-const editError = $('#edit-error');
-const editDialog = $('#edit-dialog');
-const submitDialogBtn = $('#submit-dialog');
-const closeDialogBtn = $('#close-dialog');
-const articlesContainer = $('.articles');
+const Edit = {
+  element: undefined,
+  filename: '',
+  form: $('#edit-form'),
+  dialog: $('#edit-dialog'),
+  error: $('#edit-error'),
+  submitBtn: $('#edit-submit-btn'),
+  closeBtn: $('#edit-close-btn')
+};
 
-const titleInput = editForm.querySelector('[name="title"]');
-const urlInput = editForm.querySelector('[name="url"]');
+Edit.titleInput = Edit.form.querySelector('[name="title"]'),
+Edit.urlInput = Edit.form.querySelector('[name="url"]')
 
-let controller;
-
-fetch('/api/cache')
-  .then((r) => r.json())
-  .then(mountApp);
-
-const searchArchive = debounce((query = '') => {
-  if (controller !== undefined) controller.abort();
-  if (!query.trim()) return;
-  controller = new AbortController();
-
-  fetch(`/api/search?query=${query}`, {
-    method: 'GET',
-    signal: controller.signal,
-    headers: new Headers({ 'content-type': 'application/json' })
-  }).then((res) => {
-    return res.text();
-  }).then((text) => {
-    articlesContainer.innerHTML = text;
-  }).catch((err) => {
-    console.error(err);
-  });
-}, 500);
-
-searchBar.addEventListener('input', ({ target }) => {
-  searchArchive(target.value);
+Edit.closeBtn.addEventListener('click', () => {
+  Edit.dialog.close();
 });
 
-closeDialogBtn.addEventListener('click', () => {
-  editDialog.close();
-});
-
-submitDialogBtn.addEventListener('click', async (ev) => {
+Edit.submitBtn.addEventListener('click', async (ev) => {
   ev.preventDefault();
-  const formData = new FormData(editForm);
-  formData.append('filename', editingFilename);
+  const formData = new FormData(Edit.form);
+  formData.append('filename', Edit.filename);
 
-  submitDialogBtn.setAttribute('disabled', 'true');
+  Edit.submitBtn.setAttribute('disabled', 'true');
   const { error } = await editPage(formData);
-  submitDialogBtn.removeAttribute('disabled');
+  Edit.submitBtn.removeAttribute('disabled');
 
   if (error) {
-    editError.classList.remove('-hidden');
-    editError.innerText = error;
+    Edit.error.classList.remove('-hidden');
+    Edit.error.innerText = error;
   } else {
     const title = formData.get('title');
     const url = formData.get('url');
 
-
-    editingEl.querySelector('.title').innerText = title;
-    editingEl.querySelector('.url').innerText = url;
-    editingEl.querySelector('.edit-button').dataset.title = title;
-    editingEl.querySelector('.edit-button').dataset.url = url;
-    editDialog.close();
+    Edit.element.querySelector('.title').innerText = title;
+    Edit.element.querySelector('.url').innerText = url;
+    Edit.element.querySelector('.edit-button').dataset.title = title;
+    Edit.element.querySelector('.edit-button').dataset.url = url;
+    Edit.dialog.close();
   }
 });
 
-window.openEditDialog = function(el) {
+const Search = {
+  controller: undefined,
+  input: $('#search-input')
+};
+
+Search.onSearch = debounce((query = '') => {
+  if (Search.controller !== undefined)
+    Search.controller.abort();
+
+  if (!query.trim()) return;
+  Search.controller = new AbortController();
+
+  fetch(`/api/search?query=${query}`, {
+    method: 'GET',
+    signal: Search.controller.signal,
+    headers: new Headers({ 'content-type': 'application/json' })
+  }).then((res) => {
+    return res.text();
+  }).then((text) => {
+    Articles.container.innerHTML = text;
+  }).catch((err) => {
+    console.error(err);
+  });
+}, 500)
+
+Search.input.addEventListener('input', ({ target }) => {
+  Search.onSearch(target.value);
+});
+
+window.openEditDialog = function (el) {
   const { title, url, filename } = el.dataset;
-  editingEl = el.parentElement.parentElement.parentElement;
-  editError.classList.add('-hidden');
+  Edit.element = el.parentElement.parentElement.parentElement;
+  Edit.error.classList.add('-hidden');
 
-  titleInput.value = title;
-  urlInput.value = url ?? '';
-  editingFilename = filename;
-  editDialog.showModal();
-}
-
-function mountApp({ pages, size }) {
-  mounted = true;
-
-  const App = () => (
-    pages.map(PageTile)
-  );
-
-  mount(articlesContainer, App);
+  Edit.titleInput.value = title;
+  Edit.urlInput.value = url ?? '';
+  Edit.filename = filename;
+  Edit.dialog.showModal();
 }
 
 async function editPage(formData) {

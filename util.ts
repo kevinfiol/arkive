@@ -1,6 +1,7 @@
 import { walk } from '@std/fs';
-import { resolve } from '@std/path';
+import { resolve, join } from '@std/path';
 import type { Page } from './types.ts';
+import { DATA_PATH } from './constants.ts';
 
 export function createSlug(text = '') {
   const lines = text.split('\n');
@@ -121,4 +122,10 @@ export function createEmptyPage(filename: string, size: number): Page {
     filename,
     size,
   };
+}
+
+export async function appendMetadata(filePath = '', page: Page) {
+  const metadata = JSON.stringify(page);
+  const contents = `<!--#%${metadata}#%-->`;
+  await Deno.writeTextFile(filePath, contents, { append: true });
 }

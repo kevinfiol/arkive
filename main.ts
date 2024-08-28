@@ -39,6 +39,7 @@ import {
   fetchDocumentTitle,
   getSize,
   parseDirectory,
+  appendMetadata
 } from './util.ts';
 
 import type { Page, PageCache } from './types.ts';
@@ -59,7 +60,7 @@ const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
 app.use(
   secureHeaders({
-    contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+    // contentSecurityPolicy: CONTENT_SECURITY_POLICY,
   }),
 );
 
@@ -174,6 +175,7 @@ app.get('/', async (c) => {
     const filenames = directory.files.map((file) => file.name);
     const { data: pagesData } = database.getPagesData(filenames);
 
+    // TODO: delete from DB when a user deletes from the folder
     for (const file of directory.files) {
       let page;
 
@@ -259,6 +261,7 @@ app.post('/add', async (c) => {
   const page: Page = { filename, title, url, size };
 
   try {
+    appendMetadata(path, page);
     const result = database.addPage(page);
     if (!result.ok) throw result.error;
     return c.redirect('/');

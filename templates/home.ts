@@ -23,7 +23,7 @@ export const Home = ({ pages, size, count, nonce }: Props) => Layout('Archive', 
       <a href="/add">Save New Page</a>
       <a href="/logout">Logout</a>
       <div class="input-group">
-        <input type="text" placeholder="Type to Search..." id="search-bar" />
+        <input type="text" placeholder="Type to Search..." id="search-input" />
       </div>
 
       <dialog id="edit-dialog">
@@ -32,8 +32,8 @@ export const Home = ({ pages, size, count, nonce }: Props) => Layout('Archive', 
             <input type="text" placeholder="Title" name="title" required />
             <input type="text" placeholder="URL" name="url" required />
             <div class="input-group">
-              <button id="submit-dialog">Save</button>
-              <button id="close-dialog">Cancel</button>
+              <button id="edit-submit-btn">Save</button>
+              <button id="edit-close-btn">Cancel</button>
             </div>
             <figure class="error -hidden" id="edit-error">
             </figure>
