@@ -209,7 +209,10 @@ app.get('/', async (c) => {
 });
 
 app.get('/add', (c) => {
-  const html = Add();
+  const url = c.req.query('url') || '';
+  const title = c.req.query('title') || '';
+
+  const html = Add({ url, title });
   return c.html(html);
 });
 

@@ -2,7 +2,9 @@ import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 import { MonolithOptions } from './partial/monolith-options.ts';
 
-export const Add = ({ error = '' } = {}) => Layout('Save New Page', html`
+const MAX_TITLE_LENGTH = 100;
+
+export const Add = ({ url = '', title = '', error = '' } = {}) => Layout('Save New Page', html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>
@@ -11,10 +13,23 @@ export const Add = ({ error = '' } = {}) => Layout('Save New Page', html`
     <section>
       <form action="/add" method="post">
         <div class="input-group">
-          <input type="text" name="url" placeholder="URL" maxlength="200" required>
+          <input
+            type="text"
+            name="url"
+            placeholder="URL"
+            maxlength="200"
+            value="${url}"
+            required
+          >
         </div>
         <div class="input-group">
-          <input type="text" name="title" placeholder="Title (Optional)" maxlength="100">
+          <input
+            type="text"
+            name="title"
+            placeholder="Title (Optional)"
+            maxlength="${MAX_TITLE_LENGTH}"
+            value="${title.slice(0, MAX_TITLE_LENGTH)}"
+          >
         </div>
         ${MonolithOptions()}
         ${error !== '' && html`
