@@ -24,6 +24,7 @@ export const Home = ({ pages, size, count, nonce }: Props) => Layout('Archive', 
       <a href="/logout">Logout</a>
       <div class="input-group">
         <input type="text" placeholder="Type to Search..." id="search-input" />
+        <div class="spinner"></div>
       </div>
 
       <dialog id="edit-dialog">

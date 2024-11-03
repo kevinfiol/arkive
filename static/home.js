@@ -1,7 +1,29 @@
 const $ = (query) => document.querySelector(query);
 
-const Articles = {
-  container: $('.articles')
+const Spinner = {
+  container: $('.spinner'),
+  steps: ['|', '/', '-', '\\', '|', '/', '-', '\\'],
+  timer: undefined,
+  step: 0,
+  ms: 100
+};
+
+Spinner.run = () => {
+  Spinner.container.style.display = 'inherit';
+
+  const { ms, steps } = Spinner;
+
+  Spinner.timer = setInterval(() => {
+    Spinner.step += 1;
+    if (Spinner.step === steps.length) Spinner.step = 0;
+    Spinner.container.innerText = steps[Spinner.step];
+  }, ms);
+};
+
+Spinner.stop = () => {
+  Spinner.container.style.display = 'none';
+  clearInterval(Spinner.timer);
+  Spinner.timer = undefined;
 };
 
 const Edit = {
@@ -45,6 +67,10 @@ Edit.submitBtn.addEventListener('click', async (ev) => {
   }
 });
 
+const Articles = {
+  container: $('.articles')
+};
+
 const Search = {
   controller: undefined,
   input: $('#search-input')
@@ -54,9 +80,9 @@ Search.onSearch = debounce((query = '') => {
   if (Search.controller !== undefined)
     Search.controller.abort();
 
-  if (!query.trim()) return;
   Search.controller = new AbortController();
 
+  Spinner.run();
   fetch(`/api/search?query=${query}`, {
     method: 'GET',
     signal: Search.controller.signal,
@@ -67,8 +93,8 @@ Search.onSearch = debounce((query = '') => {
     Articles.container.innerHTML = text;
   }).catch((err) => {
     console.error(err);
-  });
-}, 500)
+  }).finally(Spinner.stop);
+}, 400)
 
 Search.input.addEventListener('input', ({ target }) => {
   Search.onSearch(target.value);

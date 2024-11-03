@@ -1,7 +1,6 @@
 import { walk } from '@std/fs';
-import { resolve, join } from '@std/path';
+import { resolve } from '@std/path';
 import type { Page } from './types.ts';
-import { DATA_PATH } from './constants.ts';
 
 export function createSlug(text = '') {
   const lines = text.split('\n');

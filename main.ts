@@ -34,15 +34,15 @@ import {
 } from './constants.ts';
 import * as database from './db.ts';
 import {
+  appendMetadata,
   createEmptyPage,
   createFilename,
   fetchDocumentTitle,
   getSize,
   parseDirectory,
-  appendMetadata
 } from './util.ts';
 
-import type { Page, PageCache } from './types.ts';
+import type { Page } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -175,7 +175,6 @@ app.get('/', async (c) => {
     const filenames = directory.files.map((file) => file.name);
     const { data: pagesData } = database.getPagesData(filenames);
 
-    // TODO: delete from DB when a user deletes from the folder
     for (const file of directory.files) {
       let page;
 
@@ -188,6 +187,12 @@ app.get('/', async (c) => {
       }
 
       pages.push(page);
+    }
+
+    // remove files from db that no longer exist
+    const { ok } = database.deleteRemovedPages(filenames);
+    if (!ok) {
+      console.error('Warning: Failed to delete removed pages from database');
     }
 
     size = directory.size;
@@ -386,32 +391,30 @@ app.get('/api/search', (c) => {
   const query = c.req.query('query') ?? '';
   let html = '';
 
-  const { data: results, error } = database.searchPages(query);
+  if (!query.trim().length) {
+    const { data, error } = database.getCache();
+    if (!error) {
+      const pages = data.pages;
+      const pageTiles = pages.map((page) => PageTile(page));
+      html += pageTiles.join('');
+    } else {
+      console.error('Failed to retrieve cache during blank search');
+    }
+  } else {
+    const { data: results, error } = database.searchPages(query);
 
-  if (results.length > 0 && !error) {
-    const filenames = results.map((result) => result.filename);
-    const { data: pagesData } = database.getPagesData(filenames);
+    if (results.length > 0 && !error) {
+      const filenames = results.map((result) => result.filename);
+      const { data: pagesData } = database.getPagesData(filenames);
 
-    for (const filename of filenames) {
-      const page = pagesData[filename];
-      html += PageTile(page);
+      for (const filename of filenames) {
+        const page = pagesData[filename];
+        html += PageTile(page);
+      }
     }
   }
 
   return c.text(html);
-});
-
-app.get('/api/cache', (c) => {
-  const cache: PageCache = { pages: [], size: 0 };
-
-  const { data, error } = database.getCache();
-
-  if (!error) {
-    cache.pages = data.pages;
-    cache.size = data.size;
-  }
-
-  return c.json(cache);
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

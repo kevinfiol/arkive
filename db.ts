@@ -209,6 +209,27 @@ export function getPagesData(filenames: string[]) {
   return { data, error };
 }
 
+export function deleteRemovedPages(filenames: string[]) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const paramStr = Array(filenames.length).fill('?').join(',');
+    const deletion = db.prepare(`
+      delete from page
+      where filename not in (${paramStr})
+    `);
+
+    const changes = deletion.run(...filenames);
+    if (changes < 1) throw Error('Unable to delete Pages');
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
+}
+
 export function createUser(hashed: string) {
   let ok = true;
   let error = undefined;

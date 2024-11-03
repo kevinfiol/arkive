@@ -93,6 +93,7 @@ button:not([disabled]):hover {
   margin: 0.5rem 0;
   display: flex;
   gap: 10px;
+  position: relative;
 }
 
 .input-group.-column {
@@ -160,4 +161,11 @@ button:not([disabled]):hover {
 
 .link-btn {
   cursor: pointer;
+}
+
+.spinner {
+  display: none;
+  position: absolute;
+  right: 17px;
+  top: 3px;
 }
