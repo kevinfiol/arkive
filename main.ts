@@ -34,7 +34,6 @@ import {
 } from './constants.ts';
 import * as database from './db.ts';
 import {
-  appendMetadata,
   createEmptyPage,
   createFilename,
   fetchDocumentTitle,
@@ -55,7 +54,9 @@ const ARCHIVE_PATH = join(DATA_PATH, './archive');
 if (!existsSync(ARCHIVE_PATH)) Deno.mkdirSync(ARCHIVE_PATH);
 
 // store sessions in memory
-const session = lru(100, SESSION_MAX_AGE);
+const SESSION = lru(100, SESSION_MAX_AGE);
+const JOBS = new Map<string, string>();
+const JOB_STATUS = { processing: '1', completed: '2', failed: '3' };
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
 app.use(
@@ -71,12 +72,12 @@ app.on(
   ['/', '/add', '/delete/*', '/api/*'],
   async (c, next) => {
     const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
-    const isValidToken = token && session.get(token) && v4.validate(token);
+    const isValidToken = token && SESSION.get(token) && v4.validate(token);
 
     if (isValidToken) {
       return next();
     } else if (token) {
-      session.delete(token);
+      SESSION.delete(token);
     }
 
     deleteCookie(c, ACCESS_TOKEN_NAME);
@@ -121,7 +122,7 @@ app.post('/init', async (c) => {
 
   // store token in memory
   const sessionToken = crypto.randomUUID();
-  session.set(sessionToken, true);
+  SESSION.set(sessionToken, true);
 
   // set cookie
   await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
@@ -214,17 +215,19 @@ app.get('/', async (c) => {
 });
 
 app.get('/add', (c) => {
+  const nonce = c.get('secureHeadersNonce') ?? '';
   const url = c.req.query('url') || '';
   const title = c.req.query('title') || '';
 
-  const html = Add({ url, title });
+  const html = Add({ url, title, nonce });
   return c.html(html);
 });
 
-// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_JavaScript_Deno
-app.post('/add', async (c) => {
+app.post('/add-job', async (c) => {
   const monolithOpts = [];
   const form = await c.req.formData();
+  const jobId = crypto.randomUUID();
+  JOBS.set(jobId, JOB_STATUS.processing);
 
   const url = form.get('url') as string;
   let title = form.get('title') as string;
@@ -249,39 +252,70 @@ app.post('/add', async (c) => {
   const filename = createFilename(timestamp, title);
   const path = join(ARCHIVE_PATH, filename);
 
-  const cmd = new Deno.Command('monolith', {
-    args: [`--output=${path}`, ...monolithOpts, url],
+  (async () => {
+    try {
+      const cmd = new Deno.Command('monolith', {
+        args: [`--output=${path}`, ...monolithOpts, url],
+        stderr: 'piped',
+      });
+
+      const process = cmd.spawn();
+      const result = await process.output();
+
+      if (!result.success) {
+        console.error(new TextDecoder().decode(result.stderr));
+        throw Error(`Job ${jobId} for ${path} failed`);
+      }
+
+      const size = await getSize(path);
+      const page: Page = { filename, title, url, size };
+
+      const insert = database.addPage(page);
+      if (!insert.ok) throw insert.error;
+
+      JOBS.set(jobId, JOB_STATUS.completed);
+    } catch (e) {
+      console.error(e);
+      JOBS.set(jobId, JOB_STATUS.failed);
+    }
+  })();
+
+  return c.json({ jobId });
+});
+
+app.get('/add-event/:jobId', (c) => {
+  const { jobId } = c.req.param();
+
+  const stream = new ReadableStream({
+    start(ctrl) {
+      const encoder = new TextEncoder();
+      const interval = setInterval(() => {
+        const status = JOBS.get(jobId);
+        const message = encoder.encode(
+          `data: ${status ?? JOB_STATUS.processing}\n\n`,
+        );
+        ctrl.enqueue(message);
+
+        if (
+          !status || status === JOB_STATUS.completed ||
+          status === JOB_STATUS.failed
+        ) {
+          clearInterval(interval);
+          ctrl.close();
+          JOBS.delete(jobId);
+          return;
+        }
+      }, 500);
+    },
   });
 
-  const output = await cmd.output();
-
-  if (!output.success) {
-    const html = Add({
-      error: 'Unable to save page. Please try again or check the URL.',
-    });
-
-    console.error(output);
-    c.status(500);
-    return c.html(html);
-  }
-
-  const size = await getSize(path);
-  const page: Page = { filename, title, url, size };
-
-  try {
-    appendMetadata(path, page);
-    const result = database.addPage(page);
-    if (!result.ok) throw result.error;
-    return c.redirect('/');
-  } catch (e) {
-    const html = Add({
-      error: 'Unable to save page. Please try again or check the URL.',
-    });
-
-    console.error(e);
-    c.status(500);
-    return c.html(html);
-  }
+  return c.newResponse(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 });
 
 app.get('/delete/:filename', (c) => {
@@ -341,7 +375,7 @@ app.get('/logout', async (c) => {
 
   if (token) {
     deleteCookie(c, ACCESS_TOKEN_NAME);
-    session.delete(token);
+    SESSION.delete(token);
   }
 
   return c.redirect('/login');
@@ -349,7 +383,7 @@ app.get('/logout', async (c) => {
 
 app.get('/login', async (c) => {
   const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
-  const isValidToken = token && session.get(token) && v4.validate(token);
+  const isValidToken = token && SESSION.get(token) && v4.validate(token);
   if (isValidToken) return c.redirect('/');
 
   const { data: isInit } = database.checkInitialized();
@@ -374,7 +408,7 @@ app.post('/login', async (c) => {
 
   // store token in memory
   const sessionToken = crypto.randomUUID();
-  session.set(sessionToken, true);
+  SESSION.set(sessionToken, true);
 
   // set cookie
   await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {

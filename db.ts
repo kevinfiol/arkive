@@ -220,8 +220,7 @@ export function deleteRemovedPages(filenames: string[]) {
       where filename not in (${paramStr})
     `);
 
-    const changes = deletion.run(...filenames);
-    if (changes < 1) throw Error('Unable to delete Pages');
+    deletion.run(...filenames);
   } catch (e) {
     error = e;
     ok = false;

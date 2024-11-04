@@ -1,30 +1,6 @@
+import { Spinner } from './spinner.js';
+
 const $ = (query) => document.querySelector(query);
-
-const Spinner = {
-  container: $('.spinner'),
-  steps: ['|', '/', '-', '\\', '|', '/', '-', '\\'],
-  timer: undefined,
-  step: 0,
-  ms: 100
-};
-
-Spinner.run = () => {
-  Spinner.container.style.display = 'inherit';
-
-  const { ms, steps } = Spinner;
-
-  Spinner.timer = setInterval(() => {
-    Spinner.step += 1;
-    if (Spinner.step === steps.length) Spinner.step = 0;
-    Spinner.container.innerText = steps[Spinner.step];
-  }, ms);
-};
-
-Spinner.stop = () => {
-  Spinner.container.style.display = 'none';
-  clearInterval(Spinner.timer);
-  Spinner.timer = undefined;
-};
 
 const Edit = {
   element: undefined,
@@ -81,6 +57,9 @@ Search.onSearch = debounce((query = '') => {
     Search.controller.abort();
 
   Search.controller = new AbortController();
+  Spinner.el.style.position = 'absolute';
+  Spinner.el.style.right = '17px';
+  Spinner.el.style.top = '3px;'
 
   Spinner.run();
   fetch(`/api/search?query=${query}`, {
