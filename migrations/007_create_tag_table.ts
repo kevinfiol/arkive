@@ -2,10 +2,8 @@ import type { Database } from '@db/sqlite';
 
 export default function (db: Database) {
   const create = db.prepare(`
-    create table if not exists user (
-      hashed text not null,
-      user text default "",
-      created_time text default (datetime('now'))
+    create table if not exists tag (
+      name text not null unique
     ) strict;
   `);
 
