@@ -1,0 +1,168 @@
+:root {
+  --color: #555;
+  --bg-color: #fdfdfd;
+  --bg-color-2: #1c1c1c;
+  --b-color: #333;
+  --p-color: #dbc6c6;
+  --alert-color: #e81c4f;
+  --border-color: #7d7d7d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color: #ddd;
+    --faded-color: #a4a4a4;
+    --bg-color: #151515;
+    --bg-color-2: #1c1c1c;
+    --b-color: #eee;
+    --border-color: #7d7d7d;
+  }
+}
+
+body {
+  color: var(--color);
+  background-color: var(--bg-color);
+  font-family: serif;
+  margin: 0 auto;
+  max-width: 50em;
+  line-height: 1.5;
+  padding: 4em 1em;
+}
+
+dialog {
+  background-color: var(--bg-color-2);
+  border: 2px solid var(--border-color);
+}
+
+h1,
+h2,
+strong {
+  color: var(--b-color);
+}
+
+a {
+  color: var(--p-color);
+}
+
+main > :where(header, section, footer) {
+  margin: 1rem 0;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.5em;
+  font-family: sans-serif;
+  color: var(--color);
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+}
+
+label {
+  font-family: sans-serif;
+}
+
+button {
+    cursor: pointer;
+    display: block;
+    padding: 0.35rem 0.65rem;
+    font-family: sans-serif;
+    font-size: 1em;
+    background-color: var(--bg-color);
+    color: var(--p-color);
+    border: 1px solid var(--p-color);
+}
+
+button[disabled] {
+    cursor: default;
+    opacity: 0.5;
+}
+
+button:not([disabled]):hover {
+    background-color: var(--p-color);
+    color: var(--bg-color);
+}
+
+:where(button, input):focus,
+:where(button, input):focus-visible {
+  outline: none;
+}
+
+.input-group {
+  margin: 0.5rem 0;
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.input-group.-column {
+  flex-direction: column;
+}
+
+.articles {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+}
+
+.article {
+  padding: 0.75rem;
+  background-color: var(--bg-color-2);
+}
+
+.article > .info {
+  color: var(--faded-color);
+  white-space: nowrap;
+}
+
+.article > :where(header, div) {
+  max-width: 100%;
+  max-height: 72px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.info {
+  padding: 0.15rem 0;
+  gap: 0.75rem;
+  display: flex;
+  font-family: monospace;
+}
+
+.info a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.info a:hover {
+  text-decoration: underline;
+}
+
+.header-info {
+  padding: 0.15rem 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+}
+
+.alert, .error {
+  color: var(--color);
+  border: 1px solid var(--p-color);
+  margin: 1rem 0;
+  padding: 1rem;
+  font-family: sans-serif;
+  font-weight: bolder;
+}
+
+.alert.-hidden, .error.-hidden {
+  display: none;
+}
+
+.link-btn {
+  cursor: pointer;
+}
+
+.spinner {
+  display: none;
+}

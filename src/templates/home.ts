@@ -11,12 +11,17 @@ interface Props {
   nonce: string;
 }
 
-export const Home = ({ pages, size, count, nonce }: Props) => Layout('Archive', html`
+export const Home = ({ pages, size, count, nonce }: Props) =>
+  Layout(
+    'Archive',
+    html`
   <main>
     <header>
       <div class="header-info">
         <span>Disk Usage: ${formatBytes(size)}</span>
-        <span>Showing ${count < 50 ? count : '50'} of ${count} saved pages</span>
+        <span>Showing ${
+      count < 50 ? count : '50'
+    } of ${count} saved pages</span>
       </div>
     </header>
     <section class="controls">
@@ -47,4 +52,5 @@ export const Home = ({ pages, size, count, nonce }: Props) => Layout('Archive', 
     </section>
   </main>
   <script type="module" nonce="${nonce}" src="/static/home.js"></script>
-`);
+`,
+  );

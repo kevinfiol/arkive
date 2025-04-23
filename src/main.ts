@@ -9,97 +9,71 @@ import {
   secureHeaders,
   type SecureHeadersVariables,
 } from '@hono/hono/secure-headers';
-import { lru } from 'tiny-lru';
 import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
-import { v4 } from '@std/uuid';
 import { hash, verify } from '@denorg/scrypt';
 import {
   Add,
   Delete,
   Home,
-  Initialize,
   Login,
   PageTile,
 } from './templates/index.ts';
 import {
   ACCESS_TOKEN_NAME,
+  ARCHIVE_PATH,
   CONTENT_SECURITY_POLICY,
-  DATA_PATH,
+  JOB_STATUS,
+  JOB_TIME_LIMIT,
   MIMES,
   MONOLITH_OPTIONS,
   SESSION_MAX_AGE,
   ZERO_BYTES,
 } from './constants.ts';
-import * as database from './db.ts';
+import * as DB from './sqlite/arkive.ts';
+import * as SESSION from './sqlite/session.ts';
 import {
   createEmptyPage,
   createFilename,
   fetchDocumentTitle,
   getSize,
   parseDirectory,
+  createQueue
 } from './util.ts';
+import { auth } from './middleware.ts';
+import { deadline } from '@std/async';
 
 import type { Page } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
 
-const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) ?? 8080;
+const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) || 8080;
 const SESSION_SECRET = Deno.env.get('SESSION_SECRET') || 'hunter2';
-const ARCHIVE_PATH = join(DATA_PATH, './archive');
 
 // ensure archive path exists
-if (!existsSync(ARCHIVE_PATH)) Deno.mkdirSync(ARCHIVE_PATH);
+if (!existsSync(ARCHIVE_PATH)) {
+  Deno.mkdirSync(ARCHIVE_PATH, { recursive: true });
+}
 
-// store sessions in memory
-const SESSION = lru(100, SESSION_MAX_AGE);
 const JOBS = new Map<string, string>();
-const JOB_STATUS = { processing: '1', completed: '2', failed: '3' };
+const JOB_QUEUE = createQueue(2);
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
 app.use(
   secureHeaders({
-    // contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+    contentSecurityPolicy: CONTENT_SECURITY_POLICY,
   }),
 );
 
-app.use('/static/*', serveStatic({ root: './', mimes: MIMES }));
+app.use('/static/*', serveStatic({ root: './src/', mimes: MIMES }));
+app.use('/archive/*', serveStatic({ root: './data/', mimes: MIMES }));
 
 app.on(
   ['GET', 'POST'],
   ['/', '/add', '/delete/*', '/api/*'],
-  async (c, next) => {
-    const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
-    const isValidToken = token && SESSION.get(token) && v4.validate(token);
-
-    if (isValidToken) {
-      return next();
-    } else if (token) {
-      SESSION.delete(token);
-    }
-
-    deleteCookie(c, ACCESS_TOKEN_NAME);
-
-    if (c.req.method === 'GET') {
-      const { data: isInit } = database.checkInitialized();
-      if (isInit) return c.redirect('/login');
-
-      const query = c.req.query('init');
-      const error = query === 'confirm_error'
-        ? 'Passwords do not match.'
-        : query === 'init_error'
-        ? 'Could not initialize user. Check system logs.'
-        : '';
-
-      const html = Initialize({ error });
-      return c.html(html);
-    }
-
-    c.status(401);
-    return c.text('Unauthorized');
-  },
+  auth(SESSION_SECRET),
 );
 
 app.post('/init', async (c) => {
@@ -113,52 +87,29 @@ app.post('/init', async (c) => {
   }
 
   const hashed = hash(password);
-  const { error } = database.createUser(hashed);
+  const { error } = DB.createUser(hashed);
 
   if (error) {
     console.error(error);
     return c.redirect('/?init=init_error', 302);
   }
 
-  // store token in memory
   const sessionToken = crypto.randomUUID();
-  SESSION.set(sessionToken, true);
+  SESSION.setSession(sessionToken);
 
   // set cookie
   await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
     secure: true,
     httpOnly: true,
     sameSite: 'Strict',
-    expires: new Date(Date.now() + SESSION_MAX_AGE),
+    maxAge: SESSION_MAX_AGE * 2,
   });
 
   // set init flag
-  database.initialize();
+  DB.initialize();
 
   // set cookie with session token
   return c.redirect('/');
-});
-
-app.get('/archive/*.html', async (c) => {
-  const url = new URL(c.req.url);
-  const fileName = url.pathname.replace(/^\/archive\//, '');
-  const filePath = join(ARCHIVE_PATH, decodeURIComponent(fileName));
-
-  try {
-    if (!existsSync(filePath, { isFile: true, isReadable: true })) {
-      throw Error('File does not exist: ' + filePath);
-    }
-
-    const file = await Deno.open(filePath, { read: true });
-    const stream = file.readable;
-
-    c.header('content-type', 'text/html');
-    return c.body(stream);
-  } catch (e) {
-    console.error(e);
-    c.status(404);
-    return c.text('404: File does not exist or is unreadable');
-  }
 });
 
 app.get('/', async (c) => {
@@ -166,7 +117,7 @@ app.get('/', async (c) => {
   const info = await Deno.stat(ARCHIVE_PATH);
   const date = info.mtime ?? new Date();
   const modifiedTime = date.toISOString();
-  const { data: hasChanged } = database.checkModified(modifiedTime);
+  const { data: hasChanged } = DB.checkModified(modifiedTime);
 
   let pages: Page[] = [];
   let size = ZERO_BYTES;
@@ -174,7 +125,7 @@ app.get('/', async (c) => {
   if (hasChanged) {
     const directory = await parseDirectory(ARCHIVE_PATH);
     const filenames = directory.files.map((file) => file.name);
-    const { data: pagesData } = database.getPagesData(filenames);
+    const { data: pagesData } = DB.getPagesData(filenames);
 
     for (const file of directory.files) {
       let page;
@@ -183,7 +134,7 @@ app.get('/', async (c) => {
         page = pagesData[file.name];
       } else {
         page = createEmptyPage(file.name, file.size);
-        const { error } = database.addPage(page);
+        const { error } = DB.addPage(page);
         if (error) console.error(error);
       }
 
@@ -191,15 +142,15 @@ app.get('/', async (c) => {
     }
 
     // remove files from db that no longer exist
-    const { ok } = database.deleteRemovedPages(filenames);
+    const { ok } = DB.deleteRemovedPages(filenames);
     if (!ok) {
       console.error('Warning: Failed to delete removed pages from database');
     }
 
     size = directory.size;
-    database.setCache({ pages, size });
+    DB.setCache({ pages, size });
   } else {
-    const { data: cache } = database.getCache();
+    const { data: cache } = DB.getCache();
     pages = cache.pages;
     size = cache.size;
   }
@@ -224,7 +175,7 @@ app.get('/add', (c) => {
 });
 
 app.post('/add-job', async (c) => {
-  const monolithOpts = [];
+  const monolithOpts: string[] = [];
   const form = await c.req.formData();
   const jobId = crypto.randomUUID();
   JOBS.set(jobId, JOB_STATUS.processing);
@@ -252,15 +203,18 @@ app.post('/add-job', async (c) => {
   const filename = createFilename(timestamp, title);
   const path = join(ARCHIVE_PATH, filename);
 
-  (async () => {
+  JOB_QUEUE.add(async () => {
+    let process: Deno.ChildProcess | null = null;
+
     try {
       const cmd = new Deno.Command('monolith', {
         args: [`--output=${path}`, ...monolithOpts, url],
         stderr: 'piped',
       });
 
-      const process = cmd.spawn();
-      const result = await process.output();
+      process = cmd.spawn();
+      const result = await deadline(process.output(), JOB_TIME_LIMIT);
+      process = null;
 
       if (!result.success) {
         console.error(new TextDecoder().decode(result.stderr));
@@ -270,15 +224,22 @@ app.post('/add-job', async (c) => {
       const size = await getSize(path);
       const page: Page = { filename, title, url, size };
 
-      const insert = database.addPage(page);
+      const insert = DB.addPage(page);
       if (!insert.ok) throw insert.error;
 
       JOBS.set(jobId, JOB_STATUS.completed);
     } catch (e) {
       console.error(e);
       JOBS.set(jobId, JOB_STATUS.failed);
+
+      if (process) {
+        try { process.kill('SIGTERM'); }
+        catch { console.error('Failed to kill process for ' + jobId); }
+      }
+    } finally {
+      JOB_QUEUE.done();
     }
-  })();
+  });
 
   return c.json({ jobId });
 });
@@ -286,6 +247,7 @@ app.post('/add-job', async (c) => {
 app.get('/add-event/:jobId', (c) => {
   const { jobId } = c.req.param();
 
+  // TODO: job shouldn't fail or end if user navigates away from page
   const stream = new ReadableStream({
     start(ctrl) {
       const encoder = new TextEncoder();
@@ -294,16 +256,22 @@ app.get('/add-event/:jobId', (c) => {
         const message = encoder.encode(
           `data: ${status ?? JOB_STATUS.processing}\n\n`,
         );
-        ctrl.enqueue(message);
+        
+        try {
+          ctrl.enqueue(message);
 
-        if (
-          !status || status === JOB_STATUS.completed ||
-          status === JOB_STATUS.failed
-        ) {
+          if (
+            !status || status === JOB_STATUS.completed ||
+            status === JOB_STATUS.failed
+          ) {
+            clearInterval(interval);
+            ctrl.close();
+            JOBS.delete(jobId);
+            return;
+          }
+        } catch {
           clearInterval(interval);
-          ctrl.close();
-          JOBS.delete(jobId);
-          return;
+          console.log(`Client has disconnected for ${jobId}. Job continues to run in queue.`)
         }
       }, 500);
     },
@@ -320,7 +288,7 @@ app.get('/add-event/:jobId', (c) => {
 
 app.get('/delete/:filename', (c) => {
   const filename = c.req.param('filename');
-  const { data: page, error } = database.getPage(filename);
+  const { data: page, error } = DB.getPage(filename);
 
   if (!page || error) {
     c.status(404);
@@ -334,14 +302,14 @@ app.get('/delete/:filename', (c) => {
 
 app.post('/delete/:filename', async (c) => {
   const filename = c.req.param('filename');
-  const page = database.getPage(filename);
+  const page = DB.getPage(filename);
 
   try {
     if (!page.data || page.error) {
       throw Error('Page with that ID does not exist');
     }
 
-    const deletion = database.deletePage(page.data.filename);
+    const deletion = DB.deletePage(page.data.filename);
     if (!deletion.ok) throw deletion.error;
 
     await Deno.remove(join(ARCHIVE_PATH, page.data.filename));
@@ -360,7 +328,7 @@ app.post('/edit', async (c) => {
   const filename = form.get('filename') as string;
 
   try {
-    database.editPage(filename, title, url);
+    DB.editPage(filename, title, url);
     c.status(200);
     return c.text('200');
   } catch (e) {
@@ -375,7 +343,7 @@ app.get('/logout', async (c) => {
 
   if (token) {
     deleteCookie(c, ACCESS_TOKEN_NAME);
-    SESSION.delete(token);
+    SESSION.deleteSession(token);
   }
 
   return c.redirect('/login');
@@ -383,10 +351,10 @@ app.get('/logout', async (c) => {
 
 app.get('/login', async (c) => {
   const token = await getSignedCookie(c, SESSION_SECRET, ACCESS_TOKEN_NAME);
-  const isValidToken = token && SESSION.get(token) && v4.validate(token);
+  const { data: isValidToken } = SESSION.validateSession(token);
   if (isValidToken) return c.redirect('/');
 
-  const { data: isInit } = database.checkInitialized();
+  const { data: isInit } = DB.checkInitialized();
   if (!isInit) return c.redirect('/');
 
   const html = Login();
@@ -397,7 +365,7 @@ app.post('/login', async (c) => {
   const form = await c.req.formData();
 
   const password = form.get('password') as string;
-  const { data: hashed } = database.getHashedPassword();
+  const { data: hashed } = DB.getHashedPassword();
   const isValid = verify(password, hashed);
 
   if (!isValid) {
@@ -406,16 +374,15 @@ app.post('/login', async (c) => {
     return c.html(html);
   }
 
-  // store token in memory
   const sessionToken = crypto.randomUUID();
-  SESSION.set(sessionToken, true);
+  SESSION.setSession(sessionToken);
 
   // set cookie
   await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
     secure: true,
     httpOnly: true,
     sameSite: 'Strict',
-    expires: new Date(Date.now() + SESSION_MAX_AGE),
+    maxAge: SESSION_MAX_AGE * 2,
   });
 
   return c.redirect('/');
@@ -426,7 +393,7 @@ app.get('/api/search', (c) => {
   let html = '';
 
   if (!query.trim().length) {
-    const { data, error } = database.getCache();
+    const { data, error } = DB.getCache();
     if (!error) {
       const pages = data.pages;
       const pageTiles = pages.map((page) => PageTile(page));
@@ -435,11 +402,11 @@ app.get('/api/search', (c) => {
       console.error('Failed to retrieve cache during blank search');
     }
   } else {
-    const { data: results, error } = database.searchPages(query);
-
+    const { data: results, error } = DB.searchPages(query);
+    console.log({results});
     if (results.length > 0 && !error) {
       const filenames = results.map((result) => result.filename);
-      const { data: pagesData } = database.getPagesData(filenames);
+      const { data: pagesData } = DB.getPagesData(filenames);
 
       for (const filename of filenames) {
         const page = pagesData[filename];

@@ -1,7 +1,8 @@
 import { html } from '@hono/hono/html';
 import type { Partial } from './index.ts';
 
-export const Layout = (title: string, content: Partial) => html`
+export const Layout = (title: string, content: Partial) =>
+  html`
   <!DOCTYPE html>
   <html lang="en">
   <head>

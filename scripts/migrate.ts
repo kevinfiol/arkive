@@ -1,9 +1,15 @@
-import { walk } from '@std/fs';
+import { walk, existsSync } from '@std/fs';
 import { join } from '@std/path';
-import { db } from '../db.ts';
+import { DATA_PATH } from '../src/constants.ts';
 
 // match files that start with at least one number and underscore, e.g. 001_create, or 1_create are fine
 const FILE_REGEX = /^[0-9]{1,}_/;
+
+if (!existsSync(DATA_PATH)) {
+  Deno.mkdirSync(DATA_PATH, { recursive: true });
+}
+
+const { db } = await import('../src/sqlite/arkive.ts');
 
 try {
   db.exec('select rowid from migrations');

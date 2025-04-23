@@ -1,17 +1,14 @@
-import { Database } from '@db/sqlite';
 import { join } from '@std/path';
-import { existsSync } from '@std/fs';
-import { DATA_PATH, ZERO_BYTES } from './constants.ts';
-import type { Page, PageCache } from './types.ts';
+import { Database } from '@db/sqlite';
+import { DATA_PATH, ZERO_BYTES } from '../constants.ts';
+import type { Page, PageCache } from '../types.ts';
 
-const DB_FILENAME = 'arkive.db';
+const DB_PATH = join(DATA_PATH, 'arkive.db');
+export const db = new Database(DB_PATH);
 
-// ensure data path exists before opening/creating database
-if (!existsSync(DATA_PATH)) Deno.mkdirSync(DATA_PATH);
-export const db = new Database(join(DATA_PATH, DB_FILENAME));
-
-// use WAL mode
-db.exec('pragma journal_mode = WAL');
+db.exec('pragma journal_mode = WAL;');
+db.exec('pragma foreign_keys = true;');
+db.exec('pragma temp_store = memory;');
 
 export function updateModified(isoTimestamp: string) {
   let ok = true;

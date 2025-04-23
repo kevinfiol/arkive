@@ -6,7 +6,10 @@ interface Props {
   title: string;
 }
 
-export const Delete = ({ filename, title }: Props) => Layout('Delete Page', html`
+export const Delete = ({ filename, title }: Props) =>
+  Layout(
+    'Delete Page',
+    html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>
@@ -24,4 +27,5 @@ export const Delete = ({ filename, title }: Props) => Layout('Delete Page', html
       </form>
     </section>
   </main>
-`);
+`,
+  );

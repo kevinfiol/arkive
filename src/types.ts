@@ -9,3 +9,9 @@ export type PageCache = {
   pages: Page[];
   size: number;
 };
+
+export interface Session {
+  token: string;
+  expires_at: number;
+  now: number;
+}

@@ -10,7 +10,10 @@ interface Props {
 
 const MAX_TITLE_LENGTH = 100;
 
-export const Add = ({ url = '', title = '', nonce }: Props) => Layout('Save New Page', html`
+export const Add = ({ url = '', title = '', nonce }: Props) =>
+  Layout(
+    'Save New Page',
+    html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>
@@ -47,4 +50,5 @@ export const Add = ({ url = '', title = '', nonce }: Props) => Layout('Save New 
     </section>
   </main>
   <script type="module" nonce="${nonce}" src="/static/add.js"></script>
-`);
+`,
+  );

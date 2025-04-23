@@ -1,7 +1,10 @@
 import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 
-export const Initialize = ({ error = '' } = {}) => Layout('Initialize', html`
+export const Initialize = ({ error = '' } = {}) =>
+  Layout(
+    'Initialize',
+    html`
   <main>
     <header>
       <h1>Initialize</h1>
@@ -16,11 +19,13 @@ export const Initialize = ({ error = '' } = {}) => Layout('Initialize', html`
           <input type="password" name="confirm" id="confirm-password" placeholder="Confirm Password" minlength="7" required>
         </div>
 
-        ${error !== '' && html`
+        ${
+      error !== '' && html`
           <figure class="error">
             ${error}
           </figure>
-        `}
+        `
+    }
 
         <div class="input-group">
           <button type="submit">
@@ -30,4 +35,5 @@ export const Initialize = ({ error = '' } = {}) => Layout('Initialize', html`
       </form>
     </section>
   </main>
-`);
+`,
+  );

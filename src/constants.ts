@@ -1,12 +1,23 @@
 import { NONCE } from '@hono/hono/secure-headers';
+import { join } from '@std/path';
 
 export const ACCESS_TOKEN_NAME = 'ARKIVE_SESSION_COOKIE';
 
-export const SESSION_MAX_AGE = 7 * 8.64 * Math.pow(10, 7);
+export const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export const ZERO_BYTES = 0;
 
 export const DATA_PATH = './data';
+
+export const ARCHIVE_PATH = join(DATA_PATH, './archive');
+
+export const JOB_STATUS = {
+  processing: '1',
+  completed: '2',
+  failed: '3',
+};
+
+export const JOB_TIME_LIMIT = 1000 * 60 * 5; // 5 minutes
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -32,8 +43,9 @@ export const MIMES: Record<string, string> = {
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#browser_compatibility
 export const CONTENT_SECURITY_POLICY = {
   defaultSrc: [NONCE, "'self'"],
-  scriptSrc: [NONCE, "'self'"],
-  scriptSrcAttr: ["'unsafe-inline'"],
+  scriptSrc: [NONCE, "'self'", "data:"],
+  styleSrc: ["'self'", "'unsafe-inline'", "data:"],
+  styleSrcAttr: ["'self'", "'unsafe-inline'"],
   baseUri: ["'self'"],
   formAction: ["'self'"],
   frameAncestors: ["'none'"],
