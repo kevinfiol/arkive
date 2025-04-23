@@ -402,7 +402,6 @@ app.get('/api/search', (c) => {
     }
   } else {
     const { data: results, error } = DB.searchPages(query);
-    console.log({ results });
     if (results.length > 0 && !error) {
       const filenames = results.map((result) => result.filename);
       const { data: pagesData } = DB.getPagesData(filenames);

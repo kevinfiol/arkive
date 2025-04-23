@@ -311,6 +311,8 @@ export function searchPages(query: string) {
   let results: { filename: Page['filename'] }[] = [];
   let error = undefined;
 
+  query = '"' + query + '"'; // surround with quotes so SQLite respects punctuation & special chars
+
   try {
     const select = db.prepare(`
       select filename
