@@ -13,13 +13,7 @@ import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
 import { hash, verify } from '@denorg/scrypt';
-import {
-  Add,
-  Delete,
-  Home,
-  Login,
-  PageTile,
-} from './templates/index.ts';
+import { Add, Delete, Home, Login, PageTile } from './templates/index.ts';
 import {
   ACCESS_TOKEN_NAME,
   ARCHIVE_PATH,
@@ -36,10 +30,10 @@ import * as SESSION from './sqlite/session.ts';
 import {
   createEmptyPage,
   createFilename,
+  createQueue,
   fetchDocumentTitle,
   getSize,
   parseDirectory,
-  createQueue
 } from './util.ts';
 import { auth } from './middleware.ts';
 import { deadline } from '@std/async';
@@ -233,8 +227,11 @@ app.post('/add-job', async (c) => {
       JOBS.set(jobId, JOB_STATUS.failed);
 
       if (process) {
-        try { process.kill('SIGTERM'); }
-        catch { console.error('Failed to kill process for ' + jobId); }
+        try {
+          process.kill('SIGTERM');
+        } catch {
+          console.error('Failed to kill process for ' + jobId);
+        }
       }
     } finally {
       JOB_QUEUE.done();
@@ -256,7 +253,7 @@ app.get('/add-event/:jobId', (c) => {
         const message = encoder.encode(
           `data: ${status ?? JOB_STATUS.processing}\n\n`,
         );
-        
+
         try {
           ctrl.enqueue(message);
 
@@ -271,7 +268,9 @@ app.get('/add-event/:jobId', (c) => {
           }
         } catch {
           clearInterval(interval);
-          console.log(`Client has disconnected for ${jobId}. Job continues to run in queue.`)
+          console.log(
+            `Client has disconnected for ${jobId}. Job continues to run in queue.`,
+          );
         }
       }, 500);
     },
@@ -403,7 +402,7 @@ app.get('/api/search', (c) => {
     }
   } else {
     const { data: results, error } = DB.searchPages(query);
-    console.log({results});
+    console.log({ results });
     if (results.length > 0 && !error) {
       const filenames = results.map((result) => result.filename);
       const { data: pagesData } = DB.getPagesData(filenames);

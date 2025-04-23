@@ -43,8 +43,8 @@ export const MIMES: Record<string, string> = {
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#browser_compatibility
 export const CONTENT_SECURITY_POLICY = {
   defaultSrc: [NONCE, "'self'"],
-  scriptSrc: [NONCE, "'self'", "data:"],
-  styleSrc: ["'self'", "'unsafe-inline'", "data:"],
+  scriptSrc: [NONCE, "'self'", 'data:'],
+  styleSrc: ["'self'", "'unsafe-inline'", 'data:'],
   styleSrcAttr: ["'self'", "'unsafe-inline'"],
   baseUri: ["'self'"],
   formAction: ["'self'"],

@@ -1,4 +1,4 @@
-import type { Context, Next, Env, Input } from '@hono/hono';
+import type { Context, Env, Input, Next } from '@hono/hono';
 import { deleteCookie, getSignedCookie } from '@hono/hono/cookie';
 import { ACCESS_TOKEN_NAME } from './constants.ts';
 import { Initialize } from './templates/index.ts';
