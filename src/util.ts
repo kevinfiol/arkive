@@ -19,6 +19,14 @@ export function createSlug(text = '') {
   return '';
 }
 
+export function filterTags(text = '') {
+  const tokens = text.split(',')
+    .filter(x => x !== '')
+    .map(createSlug);
+
+  return tokens;
+}
+
 export function createFilename(timestamp: number, title: string) {
   return (timestamp.toString()) + '-' + createSlug(title) + '.html';
 }

@@ -40,6 +40,15 @@ export const Add = ({ url = '', title = '', nonce }: Props) =>
             value="${title.slice(0, MAX_TITLE_LENGTH)}"
           >
         </div>
+        <div class="input-group">
+          <input
+            type="text"
+            name="tags"
+            placeholder="Tags separated by commas (Optional)"
+            list="tags"
+            maxlength="400"
+          >
+        </div>
         ${MonolithOptions()}
         <button type="submit">Save New Page</button>
         <figure class="alert" style="display: none">
