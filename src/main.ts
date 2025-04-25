@@ -34,11 +34,12 @@ import {
   fetchDocumentTitle,
   getSize,
   parseDirectory,
+  parseTagCSV,
 } from './util.ts';
 import { auth } from './middleware.ts';
 import { deadline } from '@std/async';
 
-import type { Page } from './types.ts';
+import type { Page, PartialPage } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -127,9 +128,10 @@ app.get('/', async (c) => {
       if (file.name in pagesData) {
         page = pagesData[file.name];
       } else {
-        page = createEmptyPage(file.name, file.size);
-        const { error } = DB.addPage(page);
+        const partial = createEmptyPage(file.name, file.size);
+        const { data: pageId, error } = DB.addPage(partial);
         if (error) console.error(error);
+        page = { ...partial, id: pageId } as Page;
       }
 
       pages.push(page);
@@ -174,6 +176,7 @@ app.post('/add-job', async (c) => {
   const jobId = crypto.randomUUID();
   JOBS.set(jobId, JOB_STATUS.processing);
 
+  const tagCSV = form.get('tags') as string;
   const url = form.get('url') as string;
   let title = form.get('title') as string;
 
@@ -216,10 +219,14 @@ app.post('/add-job', async (c) => {
       }
 
       const size = await getSize(path);
-      const page: Page = { filename, title, url, size };
+      const page: PartialPage = { filename, title, url, size, tags: [] };
 
-      const insert = DB.addPage(page);
-      if (!insert.ok) throw insert.error;
+      const { data: pageId, error } = DB.addPage(page);
+      if (error) throw error;
+      if (pageId === undefined) throw Error('Error occurred while adding page');
+
+      const tags = parseTagCSV(tagCSV);
+      if (tags.length) DB.addTags(pageId, tags);
 
       JOBS.set(jobId, JOB_STATUS.completed);
     } catch (e) {

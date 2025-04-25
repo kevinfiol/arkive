@@ -44,7 +44,7 @@ export const MIMES: Record<string, string> = {
 export const CONTENT_SECURITY_POLICY = {
   defaultSrc: [NONCE, "'self'"],
   scriptSrc: [NONCE, "'self'", 'data:'],
-    scriptSrcAttr: ["'unsafe-inline'"],
+  scriptSrcAttr: ["'unsafe-inline'"],
   styleSrc: ["'self'", "'unsafe-inline'", 'data:'],
   styleSrcAttr: ["'self'", "'unsafe-inline'"],
   baseUri: ["'self'"],

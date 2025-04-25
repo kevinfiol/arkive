@@ -2,7 +2,7 @@ import { html } from '@hono/hono/html';
 import { formatBytes } from '../../util.ts';
 import type { Page } from '../../types.ts';
 
-export const PageTile = ({ filename, url, title, size }: Page) =>
+export const PageTile = ({ filename, url, title, size, tags }: Page) =>
   html`
   <article class="article">
     <header>
@@ -11,6 +11,13 @@ export const PageTile = ({ filename, url, title, size }: Page) =>
     <div class="info">
       <small><a href="${url}" class="url">${url}</a></small>
     </div>
+    ${tags.length && html`
+      <div class="info">
+        <small style="display: flex; gap: 5px;">
+          ${tags.map((tag) => html`<span>#${tag}</span>`)}
+        </small>
+      </div>
+    `}
     <div class="info">
       <small>${formatBytes(size)}</small>
       <small>

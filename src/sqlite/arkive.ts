@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { Database } from '@db/sqlite';
 import { DATA_PATH, ZERO_BYTES } from '../constants.ts';
-import type { Page, PageCache } from '../types.ts';
+import type { Page, PageCache, PageRow, PartialPage } from '../types.ts';
 
 const DB_PATH = join(DATA_PATH, 'arkive.db');
 export const db = new Database(DB_PATH);
@@ -105,21 +105,31 @@ export function getPage(filename: string) {
 
   try {
     const select = db.prepare(`
-      select *
-      from page
-      where filename = :filename
+      select
+        p.*,
+        group_concat(t.name, ',') as tags
+      from page p
+      left join page_tag pt on p.id = pt.page_id
+      left join tag t on pt.tag_id = t.id
+      where filename = :filename;
     `);
 
-    page = select.get<Page>({ filename });
+    const row = select.get<PageRow>({ filename });
+
+    if (row) {
+      const tags = row.tags ? row.tags.split(',') : [];
+      page = { ...row, tags };
+    }
   } catch (e) {
     error = e;
   }
 
+  console.log({ page });
   return { data: page, error };
 }
 
-export function addPage(page: Page) {
-  let ok = true;
+export function addPage(page: PartialPage) {
+  let id = undefined;
   let error = undefined;
 
   try {
@@ -128,14 +138,19 @@ export function addPage(page: Page) {
       values (:title, :url, :filename, :size)
     `);
 
-    const changes = insert.run({ ...page });
+    const changes = insert.run({
+      title: page.title,
+      url: page.url,
+      filename: page.filename,
+      size: page.size,
+    });
     if (changes !== 1) throw Error('Unable to add page');
+    id = db.lastInsertRowId;
   } catch (e) {
     error = e;
-    ok = false;
   }
 
-  return { ok, error };
+  return { data: id, error };
 }
 
 export function deletePage(filename: string) {
@@ -191,18 +206,29 @@ export function getPagesData(filenames: string[]) {
   try {
     const paramStr = Array(filenames.length).fill('?').join(',');
     const select = db.prepare(`
-      select *
-      from page
+      select
+        p.*,
+        group_concat(t.name, ',') as tags
+      from page p
+      left join page_tag pt on p.id = pt.page_id
+      left join tag t on pt.tag_id = t.id
       where filename in (${paramStr})
     `);
 
-    const rows = select.all<Page>(...filenames);
-    for (const row of rows) data[row.filename] = row;
+    const rows = select.all<PageRow>(...filenames);
+    for (const row of rows) {
+      if (row.id === null) continue;
+
+      const tags = row.tags ? row.tags.split(',') : [];
+      const page: Page = { ...row, tags };
+      data[page.filename] = page;
+    }
   } catch (e) {
     error = e;
     console.error(e);
   }
 
+  console.log({ data });
   return { data, error };
 }
 
@@ -326,4 +352,34 @@ export function searchPages(query: string) {
   }
 
   return { data: results, error };
+}
+
+export function addTags(pageId: number, tags: string[]) {
+  let ok = true;
+  let error = undefined;
+
+  try {
+    const tagInsert = db.prepare(`
+      insert or ignore into tag (name) values (?)
+    `);
+
+    const pageTagInsert = db.prepare(`
+      insert or ignore into page_tag (page_id, tag_id)
+      select ?, id from tag where name = ?
+    `);
+
+    const transaction = db.transaction((tags: string[]) => {
+      for (const tag of tags) {
+        tagInsert.run(tag);
+        pageTagInsert.run(pageId, tag);
+      }
+    });
+
+    transaction(tags);
+  } catch (e) {
+    error = e;
+    ok = false;
+  }
+
+  return { ok, error };
 }
