@@ -124,7 +124,6 @@ export function getPage(filename: string) {
     error = e;
   }
 
-  console.log({ page });
   return { data: page, error };
 }
 
@@ -173,7 +172,7 @@ export function deletePage(filename: string) {
   return { ok, error };
 }
 
-export function editPage(filename: string, title: string, url: string) {
+export function editPage(pageId: number, filename: string, title: string, url: string, tags: string[]) {
   let ok = true;
   let error = undefined;
 
@@ -187,6 +186,9 @@ export function editPage(filename: string, title: string, url: string) {
 
     const changes = update.run({ filename, title, url });
     if (changes < 1) throw Error('Unable to edit Page');
+
+    const setTagsOp = setTags(pageId, tags);
+    if (!setTagsOp.ok) throw setTagsOp.error;
 
     // bust cache
     const isoTimestamp = (new Date()).toISOString();
@@ -354,11 +356,13 @@ export function searchPages(query: string) {
   return { data: results, error };
 }
 
-export function addTags(pageId: number, tags: string[]) {
+export function setTags(pageId: number, tags: string[]) {
   let ok = true;
   let error = undefined;
 
   try {
+    const paramsStr = tags.map(() => '?').join(',');
+
     const tagInsert = db.prepare(`
       insert or ignore into tag (name) values (?)
     `);
@@ -368,14 +372,34 @@ export function addTags(pageId: number, tags: string[]) {
       select ?, id from tag where name = ?
     `);
 
-    const transaction = db.transaction((tags: string[]) => {
+    const pageTagDelete = db.prepare(`
+      delete from page_tag
+      where page_id = ?
+      and tag_id not in (
+        select id from tag
+        where name in
+        (${paramsStr})
+      )
+    `);
+
+    const transaction = db.transaction((pageId: number, tags: string[]) => {
       for (const tag of tags) {
         tagInsert.run(tag);
         pageTagInsert.run(pageId, tag);
       }
+
+      if (tags.length > 0) {
+        pageTagDelete.run(pageId, ...tags);
+      } else {
+        const deleteFromPageTag = db.prepare(`
+          delete from page_tag where page_id = ?
+        `);
+
+        deleteFromPageTag.run(pageId);
+      }
     });
 
-    transaction(tags);
+    transaction(pageId, tags);
   } catch (e) {
     error = e;
     ok = false;

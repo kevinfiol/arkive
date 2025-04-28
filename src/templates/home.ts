@@ -37,6 +37,7 @@ export const Home = ({ pages, size, count, nonce }: Props) =>
           <form id="edit-form" method="dialog">
             <input type="text" placeholder="Title" name="title" required />
             <input type="text" placeholder="URL" name="url" required />
+            <input type="text" placeholder="Tags" name="tags" required />
             <div class="input-group">
               <button id="edit-submit-btn">Save</button>
               <button id="edit-close-btn">Cancel</button>

@@ -226,7 +226,7 @@ app.post('/add-job', async (c) => {
       if (pageId === undefined) throw Error('Error occurred while adding page');
 
       const tags = parseTagCSV(tagCSV);
-      if (tags.length) DB.addTags(pageId, tags);
+      if (tags.length) DB.setTags(pageId, tags);
 
       JOBS.set(jobId, JOB_STATUS.completed);
     } catch (e) {
@@ -329,18 +329,29 @@ app.post('/delete/:filename', async (c) => {
 
 app.post('/edit', async (c) => {
   const form = await c.req.formData();
+  const pageIdStr = form.get('pageId') as string;
   const url = form.get('url') as string;
   const title = form.get('title') as string;
+  const tagsCSV = form.get('tags') as string;
   const filename = form.get('filename') as string;
 
+  const pageId = Number(pageIdStr);
+  const tags = parseTagCSV(tagsCSV);
+
   try {
-    DB.editPage(filename, title, url);
+    DB.editPage(pageId, filename, title, url, tags);
     c.status(200);
-    return c.text('200');
+    return c.json({
+      pageId,
+      filename,
+      title,
+      url,
+      tags
+    });
   } catch (e) {
     console.error(e);
     c.status(500);
-    return c.text('500');
+    return c.json({});
   }
 });
 
