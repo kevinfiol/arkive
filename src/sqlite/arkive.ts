@@ -172,7 +172,13 @@ export function deletePage(filename: string) {
   return { ok, error };
 }
 
-export function editPage(pageId: number, filename: string, title: string, url: string, tags: string[]) {
+export function editPage(
+  pageId: number,
+  filename: string,
+  title: string,
+  url: string,
+  tags: string[],
+) {
   let ok = true;
   let error = undefined;
 

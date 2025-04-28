@@ -8,7 +8,7 @@ export type Page = {
 };
 
 export type PageRow = Omit<Page, 'tags'> & {
-  tags: string | null
+  tags: string | null;
 };
 
 export type PartialPage = Omit<Page, 'id' | 'tags'> & {

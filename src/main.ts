@@ -346,7 +346,7 @@ app.post('/edit', async (c) => {
       filename,
       title,
       url,
-      tags
+      tags,
     });
   } catch (e) {
     console.error(e);
