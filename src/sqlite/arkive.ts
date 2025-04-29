@@ -368,7 +368,7 @@ export function searchPages(query: string, tagQueries: string[] = []) {
 
       results = select.all<{ filename: Page['filename'] }>(
         ...tagQueries,
-        tagQueries.length
+        tagQueries.length,
       );
     } else if (tagQueries.length > 0) {
       const select = db.prepare(`
@@ -385,7 +385,7 @@ export function searchPages(query: string, tagQueries: string[] = []) {
       results = select.all<{ filename: Page['filename'] }>(
         searchParam,
         ...tagQueries,
-        tagQueries.length
+        tagQueries.length,
       );
     } else {
       const select = db.prepare(`

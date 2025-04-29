@@ -128,7 +128,7 @@ app.get('/', async (c) => {
       if (file.name in pagesData) {
         page = pagesData[file.name];
       } else {
-        console.log({hasChanged, filename: file.name, pagesData});
+        console.log({ hasChanged, filename: file.name, pagesData });
         const partial = createEmptyPage(file.name, file.size);
         const { data: pageId, error } = DB.addPage(partial);
         if (error) console.error(error);
@@ -425,12 +425,13 @@ app.get('/api/search', (c) => {
     const tokens = query
       .split(' ')
       .filter((x) => x !== '');
-    
+
     for (const token of tokens) {
-      if (token[0] === '#' && token[1] !== undefined)
+      if (token[0] === '#' && token[1] !== undefined) {
         tagQueries.push(token.slice(1));
-      else if (token[0] !== '#')
+      } else if (token[0] !== '#') {
         searchQuery += (searchQuery ? ' ' : '') + token;
+      }
     }
 
     const { data: results, error } = DB.searchPages(searchQuery, tagQueries);
