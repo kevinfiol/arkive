@@ -65,7 +65,7 @@ const Search = {
   input: $('#search-input')
 };
 
-Search.onSearch = debounce((query = '') => {
+Search.onSearch = (query = '') => {
   if (Search.controller !== undefined)
     Search.controller.abort();
 
@@ -86,10 +86,13 @@ Search.onSearch = debounce((query = '') => {
   }).catch((err) => {
     console.error(err);
   }).finally(Spinner.stop);
-}, 400)
+};
 
+const debouncedSearch = debounce(Search.onSearch, 400);
 Search.input.addEventListener('input', ({ target }) => {
-  Search.onSearch(target.value.trim());
+  const value = target.value.trim();
+  if (value) debouncedSearch(target.value.trim());
+  else Search.onSearch(value);
 });
 
 window.openEditDialog = function (el) {
