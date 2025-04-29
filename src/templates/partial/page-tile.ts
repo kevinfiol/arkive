@@ -12,8 +12,8 @@ export const PageTile = ({ id, filename, url, title, size, tags }: Page) =>
       <small><a href="${url}" class="url">${url}</a></small>
     </div>
     <div class="info tags" style="display: ${
-    tags.length > 0 ? 'flex' : 'none'
-  };">
+      tags.length > 0 ? 'flex' : 'none'
+    };">
       <small style="display: flex; gap: 5px;">
         ${tags.map((tag) => html`<span>#${tag}</span>`)}
       </small>

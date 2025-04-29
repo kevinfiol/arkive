@@ -75,7 +75,7 @@ Search.onSearch = debounce((query = '') => {
   Spinner.el.style.top = '3px;'
 
   Spinner.run();
-  fetch(`/api/search?query=${query}`, {
+  fetch(`/api/search?query=${encodeURIComponent(query)}`, {
     method: 'GET',
     signal: Search.controller.signal,
     headers: new Headers({ 'content-type': 'application/json' })
@@ -89,7 +89,7 @@ Search.onSearch = debounce((query = '') => {
 }, 400)
 
 Search.input.addEventListener('input', ({ target }) => {
-  Search.onSearch(target.value);
+  Search.onSearch(target.value.trim());
 });
 
 window.openEditDialog = function (el) {

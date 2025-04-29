@@ -221,6 +221,7 @@ export function getPagesData(filenames: string[]) {
       left join page_tag pt on p.id = pt.page_id
       left join tag t on pt.tag_id = t.id
       where filename in (${paramStr})
+      group by p.id
     `);
 
     const rows = select.all<PageRow>(...filenames);
@@ -236,7 +237,6 @@ export function getPagesData(filenames: string[]) {
     console.error(e);
   }
 
-  console.log({ data });
   return { data, error };
 }
 
@@ -341,20 +341,61 @@ export function getHashedPassword() {
   return { data: hashed, error };
 }
 
-export function searchPages(query: string) {
+export function searchPages(query: string, tagQueries: string[] = []) {
   let results: { filename: Page['filename'] }[] = [];
   let error = undefined;
 
-  query = '"' + query + '"'; // surround with quotes so SQLite respects punctuation & special chars
+  if (!query.trim() && tagQueries.length === 0) {
+    return { data: results, error };
+  }
 
   try {
-    const select = db.prepare(`
-      select filename
-      from page_fts
-      where page_fts match :query
-    `);
+    // surround with quotes so SQLite respects punctuation & special chars
+    const searchParam = '"' + query + '"';
+    const paramsStr = tagQueries.map(() => '?').join(',');
 
-    results = select.all<{ filename: Page['filename'] }>({ query });
+    if (!query.trim()) {
+      // filter results by tags only
+      const select = db.prepare(`
+        select distinct p.filename
+        from page p
+        inner join page_tag pt on p.id = pt.page_id
+        inner join tag t on pt.tag_id = t.id
+        where t.name in (${paramsStr})
+        group by p.filename
+        having count(distinct t.name) = ?
+      `);
+
+      results = select.all<{ filename: Page['filename'] }>(
+        ...tagQueries,
+        tagQueries.length
+      );
+    } else if (tagQueries.length > 0) {
+      const select = db.prepare(`
+        select distinct p.filename
+        from page_fts p
+        inner join page_tag pt on p.id = pt.page_id
+        inner join tag t on pt.tag_id = t.id
+        where page_fts match ?
+        and t.name in (${paramsStr})
+        group by p.filename
+        having count(distinct t.name) = ?
+      `);
+
+      results = select.all<{ filename: Page['filename'] }>(
+        searchParam,
+        ...tagQueries,
+        tagQueries.length
+      );
+    } else {
+      const select = db.prepare(`
+        select filename
+        from page_fts
+        where page_fts match ?
+      `);
+
+      results = select.all<{ filename: Page['filename'] }>(searchParam);
+    }
   } catch (e) {
     error = e;
   }

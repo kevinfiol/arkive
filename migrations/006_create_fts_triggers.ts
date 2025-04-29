@@ -4,8 +4,8 @@ export default function (db: Database) {
   const afterInsert = db.prepare(`
     create trigger pages_after_insert after insert on page
     begin
-      insert into page_fts(rowid, title, url, filename)
-      values (new.rowid, new.title, new.url, new.filename);
+      insert into page_fts(rowid, id, title, url, filename)
+      values (new.rowid, new.id, new.title, new.url, new.filename);
     end;
   `);
 

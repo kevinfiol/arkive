@@ -128,6 +128,7 @@ app.get('/', async (c) => {
       if (file.name in pagesData) {
         page = pagesData[file.name];
       } else {
+        console.log({hasChanged, filename: file.name, pagesData});
         const partial = createEmptyPage(file.name, file.size);
         const { data: pageId, error } = DB.addPage(partial);
         if (error) console.error(error);
@@ -419,7 +420,20 @@ app.get('/api/search', (c) => {
       console.error('Failed to retrieve cache during blank search');
     }
   } else {
-    const { data: results, error } = DB.searchPages(query);
+    let searchQuery = '';
+    const tagQueries = [];
+    const tokens = query
+      .split(' ')
+      .filter((x) => x !== '');
+    
+    for (const token of tokens) {
+      if (token[0] === '#' && token[1] !== undefined)
+        tagQueries.push(token.slice(1));
+      else if (token[0] !== '#')
+        searchQuery += (searchQuery ? ' ' : '') + token;
+    }
+
+    const { data: results, error } = DB.searchPages(searchQuery, tagQueries);
     if (results.length > 0 && !error) {
       const filenames = results.map((result) => result.filename);
       const { data: pagesData } = DB.getPagesData(filenames);
