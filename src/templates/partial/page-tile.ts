@@ -15,7 +15,16 @@ export const PageTile = ({ id, filename, url, title, size, tags }: Page) =>
     tags.length > 0 ? 'flex' : 'none'
   };">
       <small style="display: flex; gap: 5px;">
-        ${tags.map((tag) => html`<span>#${tag}</span>`)}
+        ${
+    tags.map((tag) =>
+      html`<span style="cursor: pointer;">
+            <a
+              data-tag="${tag}"
+              onclick="window.filterByTag(this)"
+            >#${tag}</a>
+          </span>`
+    )
+  }
       </small>
     </div>
     <div class="info">

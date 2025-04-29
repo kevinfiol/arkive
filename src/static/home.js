@@ -105,6 +105,12 @@ window.openEditDialog = function (el) {
   Edit.dialog.showModal();
 }
 
+window.filterByTag = function (el) {
+  const tag = el.dataset.tag;
+  Search.input.value = '#' + tag;
+  Search.onSearch(Search.input.value);
+}
+
 async function editPage(formData) {
   let data = {};
   let error = undefined;
