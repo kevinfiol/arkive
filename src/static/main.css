@@ -166,3 +166,18 @@ button:not([disabled]):hover {
 .spinner {
   display: none;
 }
+
+.tabs {
+  .tab-input {
+    display: none;
+
+    &:checked + .tab {
+      background-color: red;
+    }
+  }
+
+  .tab {
+    display: inline-block;
+    padding: 0.6rem;
+  }
+}

@@ -1,6 +1,7 @@
 import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 import { MonolithOptions } from './partial/monolith-options.ts';
+import { CLI } from '../constants.ts';
 
 interface Props {
   url: string;
@@ -10,7 +11,7 @@ interface Props {
 
 const MAX_TITLE_LENGTH = 100;
 
-export const Add = ({ url = '', title = '', nonce }: Props) =>
+export const Add = ({ url = '', title = '', mode = CLI.MONOLITH, nonce }: Props) =>
   Layout(
     'Save New Page',
     html`
@@ -20,6 +21,13 @@ export const Add = ({ url = '', title = '', nonce }: Props) =>
       <p>Enter a page URL and Title (optional) to archive it. Use the checkboxes configure the archiver.</p>
     </header>
     <section>
+      <div class="tabs">
+        <input type="radio" name="tabs" id="tab1" class="tab-input" checked />
+        <label class="tab" for="tab1">Webpage</label>
+        <input type="radio" name="tabs" id="tab2" class="tab-input" />
+        <label class="tab" for="tab2">YouTube</label>
+      </div>
+
       <form class="add-form">
         <div class="input-group">
           <input

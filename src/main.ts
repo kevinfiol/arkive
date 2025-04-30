@@ -17,6 +17,7 @@ import { Add, Delete, Home, Login, PageTile } from './templates/index.ts';
 import {
   ACCESS_TOKEN_NAME,
   ARCHIVE_PATH,
+  CLI,
   CONTENT_SECURITY_POLICY,
   JOB_STATUS,
   JOB_TIME_LIMIT,
@@ -29,9 +30,7 @@ import * as DB from './sqlite/arkive.ts';
 import * as SESSION from './sqlite/session.ts';
 import {
   createEmptyPage,
-  createFilename,
   createQueue,
-  fetchDocumentTitle,
   getSize,
   parseDirectory,
   parseTagCSV,
@@ -40,6 +39,7 @@ import { auth } from './middleware.ts';
 import { deadline } from '@std/async';
 
 import type { Page, PartialPage } from './types.ts';
+import { monolithJob, parseMonolithOpts } from './cli-jobs.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -166,8 +166,9 @@ app.get('/add', (c) => {
   const nonce = c.get('secureHeadersNonce') ?? '';
   const url = c.req.query('url') || '';
   const title = c.req.query('title') || '';
+  const mode = c.req.query('mode') || CLI.MONOLITH;
 
-  const html = Add({ url, title, nonce });
+  const html = Add({ url, title, mode, nonce });
   return c.html(html);
 });
 
@@ -181,25 +182,8 @@ app.post('/add-job', async (c) => {
   const url = form.get('url') as string;
   let title = form.get('title') as string;
 
-  for (const entry of form.entries()) {
-    // collect monolith opt flags
-    const key = entry[0] as keyof typeof MONOLITH_OPTIONS;
-    if (key in MONOLITH_OPTIONS && entry[1] === 'on') {
-      // if valid option and item is checked
-      const flag = MONOLITH_OPTIONS[key].flag;
-      monolithOpts.push(flag);
-    }
-  }
-
-  if (title.trim() === '') {
-    // if user did not set title, fetch from document url
-    const docTitle = await fetchDocumentTitle(url);
-    title = docTitle.data;
-  }
-
-  const timestamp = Date.now();
-  const filename = createFilename(timestamp, title);
-  const path = join(ARCHIVE_PATH, filename);
+  const opts = parseMonolithOpts(form.entries());
+  const job = monolithJob(JOB_QUEUE, opts, { title, url })
 
   JOB_QUEUE.add(async () => {
     let process: Deno.ChildProcess | null = null;

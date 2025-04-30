@@ -17,6 +17,11 @@ export const JOB_STATUS = {
   failed: '3',
 };
 
+export const CLI = {
+  MONOLITH: '1',
+  YT_DLP: '2'
+};
+
 export const JOB_TIME_LIMIT = 1000 * 60 * 5; // 5 minutes
 
 export const MONOLITH_OPTIONS = {
@@ -30,6 +35,10 @@ export const MONOLITH_OPTIONS = {
   'no-metadata': { flag: '-M', label: 'No Metadata' },
   'unwrap-noscript': { flag: '-n', label: 'Unwrap noscript tags' },
   'no-video': { flag: '-v', label: 'No Video' },
+};
+
+export const YT_DLP_OPTIONS = {
+
 };
 
 export const MIMES: Record<string, string> = {

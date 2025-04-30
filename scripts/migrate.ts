@@ -38,11 +38,13 @@ for await (const file of walk('./migrations')) {
     name,
     path: 'file://' + join(Deno.cwd(), file.path),
   });
+
+  migrations.sort((a, b) => a.id > b.id ? 1 : -1);
 }
 
 const latest = migrations[migrations.length - 1];
 if (latest.id !== migrations.length) {
-  throw Error('Inconsistent migration numbering.');
+  throw Error('Inconsistent migration numbering: ' + latest.id);
 }
 
 const current = getCurrent();
