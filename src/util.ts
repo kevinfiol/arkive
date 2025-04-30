@@ -28,7 +28,7 @@ export function parseTagCSV(text = '') {
 }
 
 export function createFilename(timestamp: number, title: string) {
-  return (timestamp.toString()) + '-' + createSlug(title) + '.html';
+  return (timestamp.toString()) + '-' + createSlug(title);
 }
 
 export async function fetchDocumentTitle(url: string) {
@@ -96,7 +96,7 @@ export async function parseDirectory(path: string) {
   for await (const file of walk(absPath)) {
     const ext = file.name.split('.').pop();
 
-    if (file.isFile && ext === 'html') {
+    if (file.isFile && (ext === 'html' || ext === 'mp4')) {
       const stats = await Deno.stat(file.path);
       size += stats.size;
       files.push({ name: file.name, size: stats.size });

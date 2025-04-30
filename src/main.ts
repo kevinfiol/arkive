@@ -20,10 +20,10 @@ import {
   CLI,
   CONTENT_SECURITY_POLICY,
   JOB_STATUS,
-  JOB_TIME_LIMIT,
   MIMES,
   MONOLITH_OPTIONS,
   SESSION_MAX_AGE,
+  YT_DLP_OPTIONS,
   ZERO_BYTES,
 } from './constants.ts';
 import * as DB from './sqlite/arkive.ts';
@@ -31,15 +31,13 @@ import * as SESSION from './sqlite/session.ts';
 import {
   createEmptyPage,
   createQueue,
-  getSize,
   parseDirectory,
   parseTagCSV,
 } from './util.ts';
 import { auth } from './middleware.ts';
-import { deadline } from '@std/async';
 
-import type { Page, PartialPage } from './types.ts';
-import { monolithJob, parseMonolithOpts } from './cli-jobs.ts';
+import type { Page } from './types.ts';
+import { monolithJob, parseOpts, ytdlpJob } from './cli-jobs.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -173,58 +171,36 @@ app.get('/add', (c) => {
 });
 
 app.post('/add-job', async (c) => {
-  const monolithOpts: string[] = [];
   const form = await c.req.formData();
   const jobId = crypto.randomUUID();
   JOBS.set(jobId, JOB_STATUS.processing);
 
   const tagCSV = form.get('tags') as string;
   const url = form.get('url') as string;
-  let title = form.get('title') as string;
+  const title = form.get('title') as string;
+  const mode = (form.get('mode') as string) || CLI.MONOLITH;
+  const maxres = (form.get('maxres') as string) || '720';
 
-  const opts = parseMonolithOpts(form.entries());
-  const job = monolithJob(JOB_QUEUE, opts, { title, url })
+  const tags = parseTagCSV(tagCSV);
+  const formIter = form.entries();
+
+  let opts = [];
+  let job = undefined;
+
+  if (mode === CLI.YT_DLP) {
+    opts = parseOpts(formIter, YT_DLP_OPTIONS);
+    job = ytdlpJob(opts, { url, tags, maxres });
+  } else {
+    opts = parseOpts(formIter, MONOLITH_OPTIONS);
+    job = monolithJob(opts, { title, url, tags });
+  }
 
   JOB_QUEUE.add(async () => {
-    let process: Deno.ChildProcess | null = null;
-
     try {
-      const cmd = new Deno.Command('monolith', {
-        args: [`--output=${path}`, ...monolithOpts, url],
-        stderr: 'piped',
-      });
-
-      process = cmd.spawn();
-      const result = await deadline(process.output(), JOB_TIME_LIMIT);
-      process = null;
-
-      if (!result.success) {
-        console.error(new TextDecoder().decode(result.stderr));
-        throw Error(`Job ${jobId} for ${path} failed`);
-      }
-
-      const size = await getSize(path);
-      const page: PartialPage = { filename, title, url, size, tags: [] };
-
-      const { data: pageId, error } = DB.addPage(page);
-      if (error) throw error;
-      if (pageId === undefined) throw Error('Error occurred while adding page');
-
-      const tags = parseTagCSV(tagCSV);
-      if (tags.length) DB.setTags(pageId, tags);
-
+      await job;
       JOBS.set(jobId, JOB_STATUS.completed);
-    } catch (e) {
-      console.error(e);
+    } catch {
       JOBS.set(jobId, JOB_STATUS.failed);
-
-      if (process) {
-        try {
-          process.kill('SIGTERM');
-        } catch {
-          console.error('Failed to kill process for ' + jobId);
-        }
-      }
     } finally {
       JOB_QUEUE.done();
     }
@@ -236,7 +212,6 @@ app.post('/add-job', async (c) => {
 app.get('/add-event/:jobId', (c) => {
   const { jobId } = c.req.param();
 
-  // TODO: job shouldn't fail or end if user navigates away from page
   const stream = new ReadableStream({
     start(ctrl) {
       const encoder = new TextEncoder();

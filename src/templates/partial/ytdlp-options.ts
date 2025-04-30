@@ -1,7 +1,7 @@
 import { html } from '@hono/hono/html';
 import { YT_DLP_OPTIONS } from '../../constants.ts';
 
-export const MonolithOptions = () =>
+export const YtDlpOptions = () =>
   html`
   <ul>
     ${
@@ -20,5 +20,18 @@ export const MonolithOptions = () =>
     `
     )
   }
+
+    <li>
+      <label>
+        Max Resolution
+        <select name="maxres">
+          <option value="360">360p</option>
+          <option value="480">480p</option>
+          <option value="720">720p</option>
+          <option value="1080">1080p</option>
+          <option value="1440">1440p</option>
+        </select>
+      </label>
+    </li>
   </ul>
 `;

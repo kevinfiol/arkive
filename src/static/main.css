@@ -6,6 +6,8 @@
   --p-color: #dbc6c6;
   --alert-color: #e81c4f;
   --border-color: #7d7d7d;
+  --tab-bg-color: #1a1a1a;
+  --tab-bg-color-selected: #353535;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -167,17 +169,28 @@ button:not([disabled]):hover {
   display: none;
 }
 
-.tabs {
-  .tab-input {
-    display: none;
+/* tab controls */
+.tab-input {
+  display: none;
 
-    &:checked + .tab {
-      background-color: red;
-    }
+  &:checked + .tab {
+    background-color: var(--tab-bg-color-selected);
   }
+}
 
-  .tab {
-    display: inline-block;
-    padding: 0.6rem;
-  }
+.tab-container-1,
+.tab-container-2 {
+    display: none
+}
+
+.tab {
+  background-color: var(--tab-bg-color);
+  display: inline-block;
+  padding: 0.6rem;
+  user-select: none;
+}
+
+#tab1:checked ~ .tab-container-1,
+#tab2:checked ~ .tab-container-2 {
+    display: block;
 }

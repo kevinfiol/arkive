@@ -18,11 +18,12 @@ export const JOB_STATUS = {
 };
 
 export const CLI = {
-  MONOLITH: '1',
-  YT_DLP: '2'
+  MONOLITH: 'webpage',
+  YT_DLP: 'youtube',
 };
 
-export const JOB_TIME_LIMIT = 1000 * 60 * 5; // 5 minutes
+export const MONOLITH_TIME_LIMIT = 1000 * 60 * 5; // 5 minutes
+export const YT_DLP_TIME_LIMIT = 1000 * 60 * 10; // 10 minutes
 
 export const MONOLITH_OPTIONS = {
   'no-audio': { flag: '-a', label: 'No Audio' },
@@ -38,7 +39,16 @@ export const MONOLITH_OPTIONS = {
 };
 
 export const YT_DLP_OPTIONS = {
-
+  'embed-subs': { flag: '--embed-subs', label: 'Embed subtitles in the video' },
+  'write-subs': { flag: '--write-subs', label: 'Write subtitle file' },
+  'embed-thumbnail': {
+    flag: '--embed-thumbnail',
+    label: 'Embed thumbnail in the video as cover art',
+  },
+  'embed-chapters': {
+    flag: '--embed-chapters',
+    label: 'Add chapter markers to the video file',
+  },
 };
 
 export const MIMES: Record<string, string> = {

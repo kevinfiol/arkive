@@ -25,7 +25,7 @@ export const Home = ({ pages, size, count, nonce }: Props) =>
       </div>
     </header>
     <section class="controls">
-      <a href="/add">Save New Page</a>
+      <a href="/add">Save New URL</a>
       <a href="/logout">Logout</a>
       <div class="input-group">
         <input type="text" placeholder="Type to Search..." id="search-input" />

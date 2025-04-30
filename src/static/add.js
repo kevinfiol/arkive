@@ -67,11 +67,13 @@ Form.el.addEventListener('submit', async (ev) => {
 
 const checkboxes = $$('input[type="checkbox"]');
 const options = getOpts() ?? {
+  // default options
   'no-audio': true,
   'no-frames': true,
   'isolate': true,
   'no-metadata': true,
   'no-video': true,
+  'max-res': '720'
 };
 
 // initialize
@@ -93,6 +95,13 @@ for (const el of checkboxes) {
     setOpts(options);
   });
 }
+
+const maxResSelect = $('select[name="maxres"]');
+maxResSelect.value = options['max-res'];
+maxResSelect.addEventListener('change', ({ target }) => {
+  options['max-res'] = target.value;
+  setOpts(options);
+});
 
 function getOpts() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY));
