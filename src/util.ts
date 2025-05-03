@@ -1,5 +1,6 @@
 import { walk } from '@std/fs';
-import { resolve } from '@std/path';
+import { extname, resolve } from '@std/path';
+import { contentType } from '@std/media-types';
 import type { Page, PartialPage } from './types.ts';
 
 export function createSlug(text = '') {
@@ -122,13 +123,23 @@ export function formatBytes(bytes: number): string {
   }
 }
 
+export function isMediaFile(filename: string) {
+  const ext = extname(filename);
+  const mime = contentType(ext) ?? '';
+  const maybeMedia = mime.split('/')[0];
+  return maybeMedia === 'video' || maybeMedia === 'audio';
+}
+
 export function createEmptyPage(filename: string, size: number): PartialPage {
+  const is_media = isMediaFile(filename);
+
   return {
     title: filename,
     url: '',
     filename,
     size,
     tags: [],
+    is_media,
   };
 }
 

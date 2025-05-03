@@ -6,8 +6,9 @@ export default function (db: Database) {
       id integer primary key,
       title text not null,
       url text default "" not null,
-      filename text not null,
+      filename text not null unique,
       size integer not null,
+      is_media integer not null,
       created_time text default (datetime('now'))
     ) strict;
   `);

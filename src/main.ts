@@ -13,7 +13,14 @@ import { loadSync } from '@std/dotenv';
 import { join } from '@std/path';
 import { existsSync } from '@std/fs';
 import { hash, verify } from '@denorg/scrypt';
-import { Add, Delete, Home, Login, PageTile } from './templates/index.ts';
+import {
+  Add,
+  Delete,
+  Home,
+  Login,
+  Media,
+  PageTile,
+} from './templates/index.ts';
 import {
   ACCESS_TOKEN_NAME,
   ARCHIVE_PATH,
@@ -126,7 +133,6 @@ app.get('/', async (c) => {
       if (file.name in pagesData) {
         page = pagesData[file.name];
       } else {
-        console.log({ hasChanged, filename: file.name, pagesData });
         const partial = createEmptyPage(file.name, file.size);
         const { data: pageId, error } = DB.addPage(partial);
         if (error) console.error(error);
@@ -168,6 +174,21 @@ app.get('/add', (c) => {
 
   const html = Add({ url, title, mode, nonce });
   return c.html(html);
+});
+
+app.get('/media/:filename', (c) => {
+  const nonce = c.get('secureHeadersNonce') ?? '';
+  const filename = c.req.param('filename');
+  const { data: page, error } = DB.getPage(filename);
+
+  if (!page || error) {
+    c.status(404);
+    return c.text('404');
+  } else {
+    const { title, url, tags } = page;
+    const html = Media({ filename, url, title, nonce, tags });
+    return c.html(html);
+  }
 });
 
 app.post('/add-job', async (c) => {

@@ -6,4 +6,5 @@ export { Delete } from './delete.ts';
 export { Home } from './home.ts';
 export { Initialize } from './initialize.ts';
 export { Login } from './login.ts';
+export { Media } from './media.ts';
 export { PageTile } from './partial/page-tile.ts';

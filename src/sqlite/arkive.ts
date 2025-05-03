@@ -2,6 +2,7 @@ import { join } from '@std/path';
 import { Database } from '@db/sqlite';
 import { DATA_PATH, ZERO_BYTES } from '../constants.ts';
 import type { Page, PageCache, PageRow, PartialPage } from '../types.ts';
+import { isMediaFile } from '../util.ts';
 
 const DB_PATH = join(DATA_PATH, 'arkive.db');
 export const db = new Database(DB_PATH);
@@ -133,15 +134,18 @@ export function addPage(page: PartialPage) {
 
   try {
     const insert = db.prepare(`
-      insert into page (title, url, filename, size)
-      values (:title, :url, :filename, :size)
+      insert into page (title, url, filename, size, is_media)
+      values (:title, :url, :filename, :size, :is_media)
     `);
+
+    const is_media = isMediaFile(page.filename);
 
     const changes = insert.run({
       title: page.title,
       url: page.url,
       filename: page.filename,
       size: page.size,
+      is_media: is_media ? 1 : 0,
     });
     if (changes !== 1) throw Error('Unable to add page');
     id = db.lastInsertRowId;

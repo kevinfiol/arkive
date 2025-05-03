@@ -2,11 +2,15 @@ import { html } from '@hono/hono/html';
 import { formatBytes } from '../../util.ts';
 import type { Page } from '../../types.ts';
 
-export const PageTile = ({ id, filename, url, title, size, tags }: Page) =>
+export const PageTile = (
+  { id, filename, url, title, size, tags, is_media }: Page,
+) =>
   html`
   <article class="article">
     <header>
-      <a href="/archive/${filename}" class="title">${title}</a>
+      <a href="/${
+    is_media ? 'media' : 'archive'
+  }/${filename}" class="title">${title}</a>
     </header>
     <div class="info">
       <small><a href="${url}" class="url">${url}</a></small>

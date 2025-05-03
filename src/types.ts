@@ -5,6 +5,7 @@ export type Page = {
   filename: string;
   size: number;
   tags: string[];
+  is_media: boolean;
 };
 
 export type PageRow = Omit<Page, 'tags'> & {

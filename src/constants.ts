@@ -69,7 +69,7 @@ export const CONTENT_SECURITY_POLICY = {
   baseUri: ["'self'"],
   formAction: ["'self'"],
   frameAncestors: ["'none'"],
-  imgSrc: ["'self'", 'data:'],
+  imgSrc: ["'self'", 'data:', 'https://i.ytimg.com'],
   manifestSrc: ["'self'"],
   mediaSrc: ["'self'"],
   objectSrc: ["'none'"],
