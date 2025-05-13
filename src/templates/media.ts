@@ -39,12 +39,12 @@ export const Media = ({ filename, url, title, nonce, tags }: Props) =>
     </section>
 
     <section>
-      <video id="target" playsinline controls>
+      <video id="target" playsinline controls style="width: 100%;">
         <source src="/archive/${filename}" type="video/mp4" />
       </video>
     </section>
   </main>
-  <script src="/static/vidstack.min.js"></script>
+  <!-- <script src="/static/vidstack.min.js"></script> -->
   <script nonce="${nonce}">
     //(async () => {
     //  const player = await VidstackPlayer.create({

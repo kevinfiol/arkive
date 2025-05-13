@@ -15,12 +15,13 @@ export const JOB_STATUS = {
   processing: '1',
   completed: '2',
   failed: '3',
-};
+  pending: '4',
+} as const;
 
 export const CLI = {
   MONOLITH: 'webpage',
   YT_DLP: 'youtube',
-};
+} as const;
 
 export const MONOLITH_TIME_LIMIT = 1000 * 60 * 5; // 5 minutes
 export const YT_DLP_TIME_LIMIT = 1000 * 60 * 10; // 10 minutes

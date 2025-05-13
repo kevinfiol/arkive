@@ -8,10 +8,11 @@ interface Props {
   pages: Array<Page>;
   size: number;
   count: number;
+  jobCount: number;
   nonce: string;
 }
 
-export const Home = ({ pages, size, count, nonce }: Props) =>
+export const Home = ({ pages, size, jobCount, count, nonce }: Props) =>
   Layout(
     'Archive',
     html`
@@ -19,6 +20,11 @@ export const Home = ({ pages, size, count, nonce }: Props) =>
     <header>
       <div class="header-info">
         <span>Disk Usage: ${formatBytes(size)}</span>
+        <span>
+          <a href="/jobs" class="jobs-in-progress">
+            ${jobCount > 0 ? `${jobCount} jobs in progress` : 'Job Dashboard'}
+          </a>
+        </span>
         <span>Showing ${
       count < 50 ? count : '50'
     } of ${count} saved pages</span>

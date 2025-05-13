@@ -1,3 +1,5 @@
+import { JOB_STATUS } from './constants.ts';
+
 export type Page = {
   id: number;
   title: string;
@@ -17,9 +19,6 @@ export type PartialPage = Omit<Page, 'id' | 'tags'> & {
   tags?: string[];
 };
 
-// type Example = PartialProps<Foo, 'baz' | 'buz'>;
-// type PartialProps<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
 export type PageCache = {
   pages: Page[];
   size: number;
@@ -29,4 +28,15 @@ export interface Session {
   token: string;
   expires_at: number;
   now: number;
+}
+
+export interface Job {
+  id: string;
+  status: typeof JOB_STATUS[keyof typeof JOB_STATUS];
+  url: Page['url'];
+  title: Page['title'];
+  mode: string;
+  opts: string[];
+  tags: string[];
+  maxres?: string;
 }

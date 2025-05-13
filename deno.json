@@ -3,7 +3,8 @@
     "start": "deno run -A src/main.ts",
     "debug": "deno run -A --inspect-brk src/main.ts",
     "dev": "deno run -A --watch src/main.ts",
-    "migrate": "deno run -A scripts/migrate.ts"
+    "migrate": "deno run -A scripts/migrate.ts",
+    "check": "deno check src/main.ts"
   },
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",

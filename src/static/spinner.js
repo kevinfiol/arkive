@@ -1,25 +1,39 @@
-export const Spinner = {
-  el: document.querySelector('.spinner'),
-  steps: ['|', '/', '-', '\\', '|', '/', '-', '\\'],
-  timer: undefined,
-  step: 0,
-  ms: 100
-};
+export class Spinner {
+  constructor(element) {
+    this.el = element || document.createElement('span');
+    this.el.classList.add('spinner');
+    this.steps = ['|', '/', '-', '\\', '|', '/', '-', '\\'];
+    this.timer = undefined;
+    this.step = 0;
+    this.ms = 100;
+  }
 
-Spinner.run = () => {
-  Spinner.el.style.display = 'inherit';
+  run() {
+    this.el.style.display = 'inherit';
+    this.el.style.width = '14px';
+    this.timer = setInterval(() => {
+      this.step += 1;
+      if (this.step === this.steps.length) this.step = 0;
+      this.el.innerText = this.steps[this.step];
+    }, this.ms);
 
-  const { ms, steps } = Spinner;
+    return this;
+  }
 
-  Spinner.timer = setInterval(() => {
-    Spinner.step += 1;
-    if (Spinner.step === steps.length) Spinner.step = 0;
-    Spinner.el.innerText = steps[Spinner.step];
-  }, ms);
-};
+  stop() {
+    this.el.style.display = 'none';
+    clearInterval(this.timer);
+    this.timer = undefined;
+    return this;
+  }
 
-Spinner.stop = () => {
-  Spinner.el.style.display = 'none';
-  clearInterval(Spinner.timer);
-  Spinner.timer = undefined;
-};
+  appendTo(parent) {
+    if (typeof parent === 'string') {
+      document.querySelector(parent).appendChild(this.el);
+    } else if (parent instanceof Element) {
+      parent.appendChild(this.el);
+    }
+
+    return this;
+  }
+}

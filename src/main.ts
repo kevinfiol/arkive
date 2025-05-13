@@ -17,6 +17,7 @@ import {
   Add,
   Delete,
   Home,
+  Jobs,
   Login,
   Media,
   PageTile,
@@ -38,13 +39,14 @@ import * as SESSION from './sqlite/session.ts';
 import {
   createEmptyPage,
   createQueue,
+  fetchDocumentTitle,
   parseDirectory,
   parseTagCSV,
 } from './util.ts';
 import { auth } from './middleware.ts';
-
-import type { Page } from './types.ts';
 import { monolithJob, parseOpts, ytdlpJob } from './cli-jobs.ts';
+
+import type { Job, Page } from './types.ts';
 
 // load .env file
 loadSync({ export: true });
@@ -57,7 +59,8 @@ if (!existsSync(ARCHIVE_PATH)) {
   Deno.mkdirSync(ARCHIVE_PATH, { recursive: true });
 }
 
-const JOBS = new Map<string, string>();
+const JOBS = new Map<string, Job>();
+const FAILED_JOBS = new Map<string, Job>();
 const JOB_QUEUE = createQueue(2);
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
@@ -159,6 +162,7 @@ app.get('/', async (c) => {
   const html = Home({
     size,
     pages,
+    jobCount: JOBS.size,
     count: pages.length,
     nonce,
   });
@@ -191,43 +195,86 @@ app.get('/media/:filename', (c) => {
   }
 });
 
-app.post('/add-job', async (c) => {
+app.post('/add', async (c) => {
   const form = await c.req.formData();
-  const jobId = crypto.randomUUID();
-  JOBS.set(jobId, JOB_STATUS.processing);
+  const jobId = (form.get('failed-id') as string) || crypto.randomUUID();
 
-  const tagCSV = form.get('tags') as string;
-  const url = form.get('url') as string;
-  const title = form.get('title') as string;
-  const mode = (form.get('mode') as string) || CLI.MONOLITH;
-  const maxres = (form.get('maxres') as string) || '720';
+  let job: Job;
 
-  const tags = parseTagCSV(tagCSV);
-  const formIter = form.entries();
-
-  let opts = [];
-  let job = undefined;
-
-  if (mode === CLI.YT_DLP) {
-    opts = parseOpts(formIter, YT_DLP_OPTIONS);
-    job = ytdlpJob(opts, { url, tags, maxres });
+  if (FAILED_JOBS.has(jobId)) {
+    job = FAILED_JOBS.get(jobId) as Job;
+    FAILED_JOBS.delete(jobId);
   } else {
-    opts = parseOpts(formIter, MONOLITH_OPTIONS);
-    job = monolithJob(opts, { title, url, tags });
+    let title = form.get('title') as string;
+    const tagCSV = form.get('tags') as string;
+    const url = form.get('url') as string;
+    const mode = (form.get('mode') as string) || CLI.MONOLITH;
+    const maxres = (form.get('maxres') as string) || '720';
+
+    const tags = parseTagCSV(tagCSV);
+    const formIter = form.entries();
+    const opts = mode === CLI.YT_DLP
+      ? parseOpts(formIter, YT_DLP_OPTIONS)
+      : parseOpts(formIter, MONOLITH_OPTIONS);
+
+    const doc = await fetchDocumentTitle(url);
+    if (!doc.error && !title.trim()) title = doc.data;
+
+    job = {
+      id: jobId,
+      status: JOB_STATUS.pending,
+      url,
+      title,
+      mode,
+      opts,
+      tags,
+      maxres,
+    };
   }
+
+  let jobCmd = undefined;
+
+  if (job.mode === CLI.YT_DLP) {
+    jobCmd = ytdlpJob(job.opts, {
+      title: job.title,
+      url: job.url,
+      tags: job.tags,
+      maxres: job.maxres ?? '720',
+    });
+  } else {
+    jobCmd = monolithJob(job.opts, {
+      title: job.title,
+      url: job.url,
+      tags: job.tags,
+    });
+  }
+
+  JOBS.set(jobId, job);
 
   JOB_QUEUE.add(async () => {
     try {
-      await job;
-      JOBS.set(jobId, JOB_STATUS.completed);
+      job.status = JOB_STATUS.processing;
+      await jobCmd;
+      job.status = JOB_STATUS.completed;
     } catch {
-      JOBS.set(jobId, JOB_STATUS.failed);
+      job.status = JOB_STATUS.failed;
+      FAILED_JOBS.set(jobId, job);
     } finally {
+      setTimeout(() => {
+        JOBS.delete(jobId);
+      }, 4000);
+
       JOB_QUEUE.done();
     }
   });
 
   return c.json({ jobId });
+});
+
+app.get('/jobs', (c) => {
+  const nonce = c.get('secureHeadersNonce') ?? '';
+  const html = Jobs({ nonce });
+  return c.html(html);
 });
 
 app.get('/add-event/:jobId', (c) => {
@@ -237,7 +284,7 @@ app.get('/add-event/:jobId', (c) => {
     start(ctrl) {
       const encoder = new TextEncoder();
       const interval = setInterval(() => {
-        const status = JOBS.get(jobId);
+        const { status } = JOBS.get(jobId) as Job;
         const message = encoder.encode(
           `data: ${status ?? JOB_STATUS.processing}\n\n`,
         );
@@ -261,6 +308,82 @@ app.get('/add-event/:jobId', (c) => {
           );
         }
       }, 500);
+    },
+  });
+
+  return c.newResponse(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+});
+
+app.get('/job-event', (c) => {
+  const stream = new ReadableStream({
+    start(ctrl) {
+      const encoder = new TextEncoder();
+      const interval = setInterval(() => {
+        const message = encoder.encode(
+          `data: ${JOBS.size}\n\n`,
+        );
+
+        try {
+          ctrl.enqueue(message);
+        } catch {
+          clearInterval(interval);
+        }
+
+        if (JOBS.size === 0) {
+          clearInterval(interval);
+          // ctrl.close();
+        }
+      }, 1000);
+    },
+  });
+
+  return c.newResponse(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+});
+
+app.get('/job-status-event', (c) => {
+  const stream = new ReadableStream({
+    start(ctrl) {
+      const jobs: Job[] = [];
+
+      for (const job of JOBS.values()) {
+        console.log('job in JOBS', job);
+        jobs.push(job);
+      }
+
+      for (const job of FAILED_JOBS.values()) {
+        console.log('job in FAILED_JOBS', job);
+        jobs.push(job);
+      }
+
+      const encoder = new TextEncoder();
+      const interval = setInterval(() => {
+        const message = encoder.encode(
+          `data: ${JSON.stringify(jobs)}\n\n`,
+        );
+
+        try {
+          ctrl.enqueue(message);
+        } catch {
+          clearInterval(interval);
+        }
+
+        if (JOBS.size === 0) {
+          clearInterval(interval);
+          ctrl.close();
+        }
+      }, 1000);
     },
   });
 
@@ -427,6 +550,13 @@ app.get('/api/search', (c) => {
   }
 
   return c.text(html);
+});
+
+app.delete('/job', (c) => {
+  const jobId = c.req.query('id') ?? '';
+  JOBS.delete(jobId);
+  FAILED_JOBS.delete(jobId);
+  return c.text('OK');
 });
 
 Deno.serve({ port: SERVER_PORT }, app.fetch);

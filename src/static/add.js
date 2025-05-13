@@ -16,19 +16,21 @@ const Form = {
   processing: false
 };
 
-Spinner.el.style.width = '3%';
+const spinner = new Spinner(document.querySelector('.spinner'));
+
+spinner.el.style.width = '3%';
 
 Form.el.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   if (Form.processing) return;
 
-  Spinner.run();
+  spinner.run();
   Form.alert.style.display = 'flex';
   Form.processing = true;
   Form.status.innerText = PROCESSING;
 
   const formData = new FormData(ev.target);
-  const res = await fetch('/add-job', { method: 'POST', body: formData });
+  const res = await fetch('/add', { method: 'POST', body: formData });
   const { jobId } = await res.json();
 
   // track progress
@@ -48,7 +50,7 @@ Form.el.addEventListener('submit', async (ev) => {
       if (event.data === JOB_STATUS.completed) {
         setTimeout(() => window.location.replace('/'), 500);
       } else {
-        Spinner.stop();
+        spinner.stop();
         Form.processing = false;
       }
     }
@@ -58,7 +60,7 @@ Form.el.addEventListener('submit', async (ev) => {
     console.error('add-event source failed', err);
     source.close();
 
-    Spinner.stop();
+    spinner.stop();
     Form.alert.style.display = 'none';
     Form.processing = false;
     Form.status.innerText = FAILED;

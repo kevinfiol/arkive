@@ -5,7 +5,7 @@ import {
   MONOLITH_TIME_LIMIT,
   YT_DLP_TIME_LIMIT,
 } from './constants.ts';
-import { createFilename, fetchDocumentTitle, getSize } from './util.ts';
+import { createFilename, getSize } from './util.ts';
 import * as DB from './sqlite/arkive.ts';
 import type { PartialPage } from './types.ts';
 
@@ -33,16 +33,10 @@ export async function monolithJob(
   attrs: { title: string; url: string; tags: string[] },
 ) {
   let process: Deno.ChildProcess | null = null;
-  let { title, url, tags } = attrs;
+  const { title, url, tags } = attrs;
   let filename = '';
 
   try {
-    if (title.trim() === '') {
-      // if user did not set title, fetch from document url
-      const docTitle = await fetchDocumentTitle(url);
-      title = docTitle.data;
-    }
-
     const timestamp = Date.now();
     filename = createFilename(timestamp, title) + '.html';
     const path = join(ARCHIVE_PATH, filename);
@@ -62,7 +56,14 @@ export async function monolithJob(
     }
 
     const size = await getSize(path);
-    const page: PartialPage = { filename, title, url, size, tags: [] };
+    const page: PartialPage = {
+      filename,
+      title,
+      url,
+      size,
+      tags: [],
+      is_media: false,
+    };
 
     const { data: pageId, error } = DB.addPage(page);
     if (error) throw error;
@@ -85,17 +86,14 @@ export async function monolithJob(
 
 export async function ytdlpJob(
   opts: string[],
-  attrs: { url: string; tags: string[]; maxres: string },
+  attrs: { title: string; url: string; tags: string[]; maxres: string },
 ) {
   let process: Deno.ChildProcess | null = null;
   let filename = '';
-  const { url, tags, maxres } = attrs;
+  const { title, url, tags, maxres } = attrs;
 
   try {
-    const doc = await fetchDocumentTitle(url);
-    if (doc.error) throw Error('Could not retrieve filename');
-
-    const title = doc.data;
+    if (!title.trim()) throw Error('Invalid title for filename');
     const timestamp = Date.now();
     filename = createFilename(timestamp, title);
 
@@ -133,6 +131,7 @@ export async function ytdlpJob(
       url,
       size,
       tags: [],
+      is_media: true,
     };
 
     const { data: pageId, error } = DB.addPage(page);

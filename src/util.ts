@@ -95,9 +95,9 @@ export async function parseDirectory(path: string) {
   const absPath = resolve(path);
 
   for await (const file of walk(absPath)) {
-    const ext = file.name.split('.').pop();
+    const ext = extname(file.name);
 
-    if (file.isFile && (ext === 'html' || ext === 'mp4')) {
+    if (file.isFile && (ext === '.html' || isMediaFile(file.name))) {
       const stats = await Deno.stat(file.path);
       size += stats.size;
       files.push({ name: file.name, size: stats.size });

@@ -1,6 +1,7 @@
 import { Spinner } from './spinner.js';
 
 const $ = (query) => document.querySelector(query);
+const spinner = new Spinner(document.querySelector('.spinner'));
 
 const Edit = {
   element: undefined,
@@ -70,11 +71,11 @@ Search.onSearch = (query = '') => {
     Search.controller.abort();
 
   Search.controller = new AbortController();
-  Spinner.el.style.position = 'absolute';
-  Spinner.el.style.right = '17px';
+  spinner.el.style.position = 'absolute';
+  spinner.el.style.right = '17px';
   Spinner.el.style.top = '3px;'
 
-  Spinner.run();
+  spinner.run();
   fetch(`/api/search?query=${encodeURIComponent(query)}`, {
     method: 'GET',
     signal: Search.controller.signal,
@@ -85,7 +86,7 @@ Search.onSearch = (query = '') => {
     Articles.container.innerHTML = text;
   }).catch((err) => {
     console.error(err);
-  }).finally(Spinner.stop);
+  }).finally(spinner.stop);
 };
 
 const debouncedSearch = debounce(Search.onSearch, 400);
@@ -131,6 +132,18 @@ async function editPage(formData) {
   }
 
   return { data, error };
+}
+
+// track jobs progress
+const source = new EventSource('/job-event');
+source.onmessage = (event) => {
+  const jobCount = Number(event.data);
+  const el = $('.jobs-in-progress');
+  console.log({jobCount});
+
+  if (jobCount === NaN) return;
+  if (jobCount === 0) el.innerText = 'Job Dashboard';
+  else el.innerText = `${jobCount} jobs in progress`;
 }
 
 function debounce(callback, wait) {
