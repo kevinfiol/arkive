@@ -38,6 +38,6 @@
     "singleQuote": true,
     "proseWrap": "preserve",
     "include": ["src/**/*.ts"],
-    "exclude": []
+    "exclude": ["src/templates/**/*.ts"]
   }
 }

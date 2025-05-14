@@ -7,9 +7,7 @@ interface Props {
 }
 
 export const Delete = ({ filename, title }: Props) =>
-  Layout(
-    'Delete Page',
-    html`
+  Layout('Delete Page', html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>

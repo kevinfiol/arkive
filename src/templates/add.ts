@@ -16,9 +16,7 @@ const MAX_TITLE_LENGTH = 100;
 export const Add = (
   { url = '', title = '', mode = CLI.MONOLITH, nonce }: Props,
 ) =>
-  Layout(
-    'Save New Page',
-    html`
+  Layout('Save New Page', html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>
@@ -26,13 +24,23 @@ export const Add = (
     </header>
     <section>
       <form class="add-form">
-        <input type="radio" name="mode" id="tab1" class="tab-input" value="${CLI.MONOLITH}" ${
-      mode === CLI.MONOLITH ? 'checked' : ''
-    } />
+        <input
+          type="radio"
+          name="mode"
+          id="tab1"
+          class="tab-input"
+          value="${CLI.MONOLITH}"
+          ${mode === CLI.MONOLITH ? 'checked' : ''}
+        />
         <label class="tab" for="tab1">Webpage</label>
-        <input type="radio" name="mode" id="tab2" class="tab-input" value="${CLI.YT_DLP}" ${
-      mode === CLI.YT_DLP ? 'checked' : ''
-    } />
+        <input
+          type="radio"
+          name="mode"
+          id="tab2"
+          class="tab-input"
+          value="${CLI.YT_DLP}"
+          ${mode === CLI.YT_DLP ? 'checked' : ''}
+        />
         <label class="tab" for="tab2">YouTube</label>
 
         <div class="input-group">
@@ -83,5 +91,4 @@ export const Add = (
     </section>
   </main>
   <script type="module" nonce="${nonce}" src="/static/add.js"></script>
-`,
-  );
+`);

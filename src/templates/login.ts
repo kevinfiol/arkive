@@ -2,9 +2,7 @@ import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 
 export const Login = ({ error = '' } = {}) =>
-  Layout(
-    'Login',
-    html`
+  Layout('Login', html`
   <main>
     <header>
       <h1>Login</h1>
@@ -15,13 +13,11 @@ export const Login = ({ error = '' } = {}) =>
           <input type="password" name="password" id="password" placeholder="Password" required>
         </div>
 
-        ${
-      error !== '' && html`
+        ${error !== '' && html`
           <figure class="error">
             ${error}
           </figure>
-        `
-    }
+        `}
 
         <div class="input-group">
           <button type="submit">

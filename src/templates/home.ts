@@ -13,9 +13,7 @@ interface Props {
 }
 
 export const Home = ({ pages, size, jobCount, count, nonce }: Props) =>
-  Layout(
-    'Archive',
-    html`
+  Layout('Archive', html`
   <main>
     <header>
       <div class="header-info">
@@ -25,9 +23,7 @@ export const Home = ({ pages, size, jobCount, count, nonce }: Props) =>
             ${jobCount > 0 ? `${jobCount} jobs in progress` : 'Job Dashboard'}
           </a>
         </span>
-        <span>Showing ${
-      count < 50 ? count : '50'
-    } of ${count} saved pages</span>
+        <span>Showing ${count < 50 ? count : '50'} of ${count} saved pages</span>
       </div>
     </header>
     <section class="controls">

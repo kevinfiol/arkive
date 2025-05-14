@@ -1,12 +1,9 @@
 import { html } from '@hono/hono/html';
 import { YT_DLP_OPTIONS } from '../../constants.ts';
 
-export const YtDlpOptions = () =>
-  html`
+export const YtDlpOptions = () => html`
   <ul>
-    ${
-    Object.entries(YT_DLP_OPTIONS).map(([name, opt]) =>
-      html`
+    ${Object.entries(YT_DLP_OPTIONS).map(([name, opt]) => html`
       <li>
         <label for="${name}">
           <span>${opt.label}</span>
@@ -14,12 +11,10 @@ export const YtDlpOptions = () =>
             type="checkbox"
             name="${name}"
             id="${name}"
-          >
+          />
         </label>
       </li>
-    `
-    )
-  }
+    `)}
 
     <li>
       <label>

@@ -6,9 +6,7 @@ interface Props {
 }
 
 export const Jobs = ({ nonce }: Props) =>
-  Layout(
-    'Active Jobs',
-    html`
+  Layout('Active Jobs', html`
   <main>
     <header>
       <a href="/">← Back To Archive</a>
