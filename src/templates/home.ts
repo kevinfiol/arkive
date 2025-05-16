@@ -29,6 +29,8 @@ export const Home = ({ pages, size, jobCount, count, nonce }: Props) =>
     <section class="controls">
       <a href="/add">Save New URL</a>
       <a href="/logout">Logout</a>
+      <label for="bookmarks-upload" style="cursor: pointer; text-decoration: underline;">Import Bookmarks</label>
+      <input id="bookmarks-upload" name="bookmarks-upload" type="file" style="display: none;">
       <div class="input-group">
         <input type="text" placeholder="Type to Search..." id="search-input" />
         <div class="spinner"></div>

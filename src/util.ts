@@ -149,6 +149,20 @@ export async function appendMetadata(filePath = '', page: Page) {
   await Deno.writeTextFile(filePath, contents, { append: true });
 }
 
+export function isValidHttpUrl(str: string) {
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function isYouTubeUrl(str: string) {
+  const youtubeRegex = /^https?:\/\/(?:www\.)?(?:youtube\.com\/|youtu\.be\/)/;
+  return youtubeRegex.test(str);
+}
+
 // modified version of lukeed/throttles
 // The MIT License (MIT)
 // Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)

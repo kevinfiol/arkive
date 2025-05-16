@@ -127,7 +127,6 @@ source.onmessage = (event) => {
     }
 
     state.jobs = [...state.pending, ...Object.values(state.completed)];
-    console.log({ jobs: state.jobs, completed: state.completed, pending: state.pending });
   } catch {
     state.jobs = [];
   } finally {

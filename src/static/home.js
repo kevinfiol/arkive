@@ -1,5 +1,7 @@
 import { Spinner } from './spinner.js';
 
+const MAX_UPLOAD_SIZE = 50 * 1000 * 1000; // 50 mb
+
 const $ = (query) => document.querySelector(query);
 const spinner = new Spinner(document.querySelector('.spinner'));
 
@@ -46,7 +48,14 @@ Edit.submitBtn.addEventListener('click', async (ev) => {
     Edit.element.querySelector('.tags > small').innerHTML = '';
     for (const tag of tags) {
       const span = document.createElement('span');
-      span.innerText = '#' + tag;
+      span.style.cursor = "pointer";
+
+      const a = document.createElement('a');
+      a.setAttribute('data-tag', tag);
+      a.setAttribute('onclick', 'window.filterByTag(this)');
+      a.innerText = '#' + tag;
+
+      span.appendChild(a);
       Edit.element.querySelector('.tags > small').appendChild(span);
     }
 
@@ -73,7 +82,7 @@ Search.onSearch = (query = '') => {
   Search.controller = new AbortController();
   spinner.el.style.position = 'absolute';
   spinner.el.style.right = '17px';
-  Spinner.el.style.top = '3px;'
+  spinner.el.style.top = '3px;'
 
   spinner.run();
   fetch(`/api/search?query=${encodeURIComponent(query)}`, {
@@ -86,7 +95,7 @@ Search.onSearch = (query = '') => {
     Articles.container.innerHTML = text;
   }).catch((err) => {
     console.error(err);
-  }).finally(spinner.stop);
+  }).finally(() => spinner.stop());
 };
 
 const debouncedSearch = debounce(Search.onSearch, 400);
@@ -95,6 +104,48 @@ Search.input.addEventListener('input', ({ target }) => {
   if (value) debouncedSearch(target.value.trim());
   else Search.onSearch(value);
 });
+
+const BookmarksUploadInput = document.getElementById('bookmarks-upload');
+
+BookmarksUploadInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+
+  if (file && file.type.startsWith('text/') || file.type.startsWith('application/json')) {
+    if (file.size > MAX_UPLOAD_SIZE) {
+      BookmarksUploadInput.value = '';
+      return;
+    }
+
+    (async () => {
+      try {
+        await uploadBookmarks(file);
+      } catch (e) {
+        console.error('Failed to upload bookmarks: ', e);
+      } finally {
+        BookmarksUploadInput.value = '';
+      }
+    })();
+  }
+});
+
+function uploadBookmarks(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/bookmarks', true);
+
+    xhr.onload = () => {
+      if (xhr.status === 200) resolve(xhr.response);
+      else reject(Error('Failed to upload file'));
+    };
+
+    xhr.onerror = () =>
+      reject(Error('Network error occurred while uploading file'));
+
+    const formData = new FormData();
+    formData.append('file', file);
+    xhr.send(formData);
+  });
+}
 
 window.openEditDialog = function (el) {
   const { pageid, title, url, tags, filename } = el.dataset;
@@ -139,7 +190,6 @@ const source = new EventSource('/job-event');
 source.onmessage = (event) => {
   const jobCount = Number(event.data);
   const el = $('.jobs-in-progress');
-  console.log({jobCount});
 
   if (jobCount === NaN) return;
   if (jobCount === 0) el.innerText = 'Job Dashboard';

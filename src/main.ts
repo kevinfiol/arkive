@@ -40,6 +40,8 @@ import {
   createEmptyPage,
   createQueue,
   fetchDocumentTitle,
+  isValidHttpUrl,
+  isYouTubeUrl,
   parseDirectory,
   parseTagCSV,
 } from './util.ts';
@@ -334,11 +336,6 @@ app.get('/job-event', (c) => {
         } catch {
           clearInterval(interval);
         }
-
-        if (JOBS.size === 0) {
-          clearInterval(interval);
-          // ctrl.close();
-        }
       }, 1000);
     },
   });
@@ -377,11 +374,6 @@ app.get('/job-status-event', (c) => {
           ctrl.enqueue(message);
         } catch {
           clearInterval(interval);
-        }
-
-        if (JOBS.size === 0) {
-          clearInterval(interval);
-          ctrl.close();
         }
       }, 1000);
     },
@@ -556,6 +548,89 @@ app.delete('/job', (c) => {
   const jobId = c.req.query('id') ?? '';
   JOBS.delete(jobId);
   FAILED_JOBS.delete(jobId);
+  return c.text('OK');
+});
+
+app.post('/bookmarks', async (c) => {
+  const body = await c.req.parseBody();
+  const file = body['file'];
+
+  if (
+    !(file instanceof File) ||
+    !(file.type === 'text/plain')
+  ) {
+    c.status(500);
+    return c.text('error');
+  }
+
+  try {
+    const content = await file.text();
+    const lines = content.split('\n');
+
+    // limit to 1000 links
+    let cur = 0;
+    const max = 500;
+    for (let line of lines) {
+      if (cur >= max) break;
+
+      line = line.replace(/\s/g, '');
+      if (!isValidHttpUrl(line)) continue;
+      cur += 1;
+
+      const mode = isYouTubeUrl(line) ? CLI.YT_DLP : CLI.MONOLITH;
+
+      const job: Job = {
+        id: crypto.randomUUID(),
+        status: JOB_STATUS.pending,
+        url: line,
+        title: line,
+        mode,
+        opts: [],
+        tags: [],
+      };
+
+      JOBS.set(job.id, job);
+
+      JOB_QUEUE.add(async () => {
+        const doc = await fetchDocumentTitle(job.url);
+        if (!doc.error) job.title = doc.data;
+
+        let jobCmd = undefined;
+        if (job.mode === CLI.YT_DLP) {
+          jobCmd = ytdlpJob(job.opts, {
+            title: job.title,
+            url: job.url,
+            tags: job.tags,
+            maxres: job.maxres ?? '720',
+          });
+        } else {
+          jobCmd = monolithJob(job.opts, {
+            title: job.title,
+            url: job.url,
+            tags: job.tags,
+          });
+        }
+
+        try {
+          job.status = JOB_STATUS.processing;
+          await jobCmd;
+          job.status = JOB_STATUS.completed;
+        } catch {
+          job.status = JOB_STATUS.failed;
+          FAILED_JOBS.set(job.id, job);
+        } finally {
+          setTimeout(() => {
+            JOBS.delete(job.id);
+          }, 4000);
+
+          JOB_QUEUE.done();
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Error parsing file', e);
+  }
+
   return c.text('OK');
 });
 
