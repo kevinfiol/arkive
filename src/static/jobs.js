@@ -11,7 +11,7 @@ const JOB_STATUS = {
   pending: '4'
 };
 
-const state = { jobs: [], pending: [], completed: {}, loading: true };
+const state = { jobs: [], pending: [], completed: [], loading: true };
 
 const ProgressSpinner = () => {
   let spinner;
@@ -67,7 +67,7 @@ const App = () => html`
         </div>
 
         <div class="status" style="justify-self: center; grid-column: 2">
-          ${job.status === JOB_STATUS.pending || job.status === JOB_STATUS.processing && html`
+          ${(job.status === JOB_STATUS.pending || job.status === JOB_STATUS.processing) && html`
             <div style="display: flex;">
               <${ProgressSpinner} />
               <span>
@@ -98,7 +98,7 @@ mount(ROOT, App);
 
 function queueFailedJob(job) {
   const formData = new FormData();
-  formData.append('id', job.id);
+  formData.append('failed-id', job.id);
   fetch('/add', { method: 'POST', body: formData })
     .finally(redraw);
 }
@@ -120,13 +120,21 @@ source.onmessage = (event) => {
 
     for (const job of jobs) {
       if (job.status === JOB_STATUS.completed) {
-        state.completed[job.id] = job;
+        state.completed.push(job);
       } else {
         state.pending.push(job);
       }
     }
 
-    state.jobs = [...state.pending, ...Object.values(state.completed)];
+    const seen = {};
+    state.jobs = [...state.completed, ...state.pending].reduce((all, job) => {
+      if (seen[job.id]) return all;
+      seen[job.id] = 1;
+      all.push(job);
+      return all;
+    }, []);
+
+    console.log({ jobs, statejobs: state.jobs });
   } catch {
     state.jobs = [];
   } finally {

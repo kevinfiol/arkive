@@ -205,7 +205,10 @@ app.post('/add', async (c) => {
 
   let job: Job;
 
-  if (FAILED_JOBS.has(jobId)) {
+  if (JOBS.has(jobId)) {
+    // no op
+    return c.json({ jobId });
+  } else if (FAILED_JOBS.has(jobId)) {
     job = FAILED_JOBS.get(jobId) as Job;
     FAILED_JOBS.delete(jobId);
   } else {
@@ -354,20 +357,18 @@ app.get('/job-event', (c) => {
 app.get('/job-status-event', (c) => {
   const stream = new ReadableStream({
     start(ctrl) {
-      const jobs: Job[] = [];
-
-      for (const job of JOBS.values()) {
-        console.log('job in JOBS', job);
-        jobs.push(job);
-      }
-
-      for (const job of FAILED_JOBS.values()) {
-        console.log('job in FAILED_JOBS', job);
-        jobs.push(job);
-      }
-
       const encoder = new TextEncoder();
       const interval = setInterval(() => {
+        const jobs: Job[] = [];
+
+        for (const job of JOBS.values()) {
+          jobs.push(job);
+        }
+  
+        for (const job of FAILED_JOBS.values()) {
+          jobs.push(job);
+        }
+
         const message = encoder.encode(
           `data: ${JSON.stringify(jobs)}\n\n`,
         );
