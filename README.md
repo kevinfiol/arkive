@@ -18,8 +18,8 @@ docker compose up -d
 ## Development
 
 1. Install [deno](https://deno.com/).
-2. Install [monolith](https://github.com/Y2Z/monolith)
-3. Install [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+2. Install [monolith](https://github.com/Y2Z/monolith).
+3. Install [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ```bash
 # run db migrations
