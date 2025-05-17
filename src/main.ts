@@ -1,4 +1,5 @@
 import { Hono } from '@hono/hono';
+import { logger } from '@hono/hono/logger';
 import {
   deleteCookie,
   getSignedCookie,
@@ -66,6 +67,7 @@ const FAILED_JOBS = new Map<string, Job>();
 const JOB_QUEUE = createQueue(2);
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
+app.use(logger());
 app.use(
   secureHeaders({
     contentSecurityPolicy: CONTENT_SECURITY_POLICY,
