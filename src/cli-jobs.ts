@@ -104,6 +104,8 @@ export async function ytdlpJob(
         '--windows-filenames',
         '--max-filesize',
         '5.0G',
+        '--merge-output-format',
+        'mp4',
         '-P',
         ARCHIVE_PATH,
         '-o',
