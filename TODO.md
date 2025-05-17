@@ -1,0 +1,3 @@
+- [ ] media downloads currently restricted to youtube
+- [ ] use a better video player than the default html5 one
+- [ ] light theme needs some tlc

@@ -1,6 +1,6 @@
 # archive
 
-A single-user personal web archive tool powered by [monolith](https://github.com/Y2Z/monolith).
+A single-user personal web archive tool powered by [monolith](https://github.com/Y2Z/monolith) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ![screenshot of arkive](https://github.com/user-attachments/assets/76e15f5b-f9c0-4b08-a935-9f829543f85f)
 
@@ -17,7 +17,9 @@ docker compose up -d
 
 ## Development
 
-Install [Deno](https://deno.com/).
+1. Install [deno](https://deno.com/).
+2. Install [monolith](https://github.com/Y2Z/monolith)
+3. Install [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 ```bash
 # run db migrations
