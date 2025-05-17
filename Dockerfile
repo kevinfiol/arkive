@@ -10,4 +10,4 @@ ENV DENO_DIR=/deno-dir
 RUN mkdir -p /deno-dir
 
 VOLUME ["/app/data"]
-CMD ["deno", "task", "start"]
+ENTRYPOINT deno task migrate && deno task start
