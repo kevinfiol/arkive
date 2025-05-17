@@ -5,9 +5,10 @@ WORKDIR /app
 COPY . .
 
 RUN deno cache src/main.ts
-RUN apk add monolith yt-dlp
+RUN apk update && add --no-cache monolith yt-dlp
 
 ENV SERVER_PORT=80
+ENV LD_LIBRARY_PATH=/usr/lib
 ENV DENO_DIR=/deno-dir
 RUN mkdir -p /deno-dir
 
