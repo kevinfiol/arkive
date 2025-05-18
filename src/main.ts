@@ -68,11 +68,11 @@ const JOB_QUEUE = createQueue(2);
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
 app.use(logger());
-app.use(
-  secureHeaders({
-    contentSecurityPolicy: CONTENT_SECURITY_POLICY,
-  }),
-);
+// app.use(
+//   secureHeaders({
+//     contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+//   }),
+// );
 
 app.use('/static/*', serveStatic({ root: './src/', mimes: MIMES }));
 app.use('/archive/*', serveStatic({ root: './data/', mimes: MIMES }));
@@ -497,7 +497,7 @@ app.post('/login', async (c) => {
   await setSignedCookie(c, ACCESS_TOKEN_NAME, sessionToken, SESSION_SECRET, {
     secure: true,
     httpOnly: true,
-    sameSite: 'Strict',
+    sameSite: 'Lax',
     maxAge: SESSION_MAX_AGE * 2,
   });
 
