@@ -1,3 +1,6 @@
 - [ ] media downloads currently restricted to youtube
 - [ ] use a better video player than the default html5 one
 - [ ] light theme needs some tlc
+- [ ] some parts of the app might be better as a SPA. namely, the home page, the search
+- [ ] should FTS index the *contents* of the pages as well? i've seen other tools that do this, but i'm not really sure how practical it is. definitely may be worth exploring albeit the contents of every page may balloon the size of the DB, it might not be that bad when you consider we only save the body text without HTML tags
+- [ ] at the very least, if FTS of the page contents is not the way we go, maybe ditch SQLite FTS all together and use something like uFuzzy
