@@ -54,7 +54,7 @@ import type { Job, Page } from './types.ts';
 // load .env file
 loadSync({ export: true });
 
-const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) || 8080;
+const SERVER_PORT = Number(Deno.env.get('SERVER_PORT')) || 8082;
 const SESSION_SECRET = Deno.env.get('SESSION_SECRET') || 'hunter2';
 
 // ensure archive path exists
