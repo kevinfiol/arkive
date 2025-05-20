@@ -68,11 +68,11 @@ const JOB_QUEUE = createQueue(2);
 const app = new Hono<{ Variables: SecureHeadersVariables }>();
 
 app.use(logger());
-// app.use(
-//   secureHeaders({
-//     contentSecurityPolicy: CONTENT_SECURITY_POLICY,
-//   }),
-// );
+app.use(
+  secureHeaders({
+    contentSecurityPolicy: CONTENT_SECURITY_POLICY,
+  }),
+);
 
 app.use('/static/*', serveStatic({ root: './src/', mimes: MIMES }));
 app.use('/archive/*', serveStatic({ root: './data/', mimes: MIMES }));
@@ -131,10 +131,11 @@ app.get('/', async (c) => {
 
   if (hasChanged) {
     const directory = await parseDirectory(ARCHIVE_PATH);
-    const filenames = directory.files.map((file) => file.name);
+    const files = directory.files.toSorted((a, b) => a.name > b.name ? 1 : -1);
+    const filenames = files.map((file) => file.name);
     const { data: pagesData } = DB.getPagesData(filenames);
 
-    for (const file of directory.files) {
+    for (const file of files) {
       let page;
 
       if (file.name in pagesData) {
