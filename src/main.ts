@@ -132,7 +132,7 @@ app.get('/', async (c) => {
 
   if (hasChanged) {
     const directory = await parseDirectory(ARCHIVE_PATH);
-    const files = directory.files;
+    const files = directory.files.toSorted((a, b) => a.name > b.name ? 1 : -1);
     const filenames = files.map((file) => file.name);
     const { data: pagesData } = DB.getPagesData(filenames);
 
