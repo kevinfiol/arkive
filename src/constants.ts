@@ -1,6 +1,8 @@
 import { NONCE } from '@hono/hono/secure-headers';
 import { join } from '@std/path';
 
+export const MAX_HOMEPAGE_PAGES = 50;
+
 export const ACCESS_TOKEN_NAME = 'ARKIVE_SESSION_COOKIE';
 
 export const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds

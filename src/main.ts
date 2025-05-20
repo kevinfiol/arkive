@@ -29,6 +29,7 @@ import {
   CLI,
   CONTENT_SECURITY_POLICY,
   JOB_STATUS,
+  MAX_HOMEPAGE_PAGES,
   MIMES,
   MONOLITH_OPTIONS,
   SESSION_MAX_AGE,
@@ -131,11 +132,16 @@ app.get('/', async (c) => {
 
   if (hasChanged) {
     const directory = await parseDirectory(ARCHIVE_PATH);
-    const files = directory.files.toSorted((a, b) => a.name > b.name ? 1 : -1);
+    const files = directory.files;
     const filenames = files.map((file) => file.name);
     const { data: pagesData } = DB.getPagesData(filenames);
 
-    for (const file of files) {
+    for (
+      let i = files.length - 1;
+      i > -1 && pages.length < MAX_HOMEPAGE_PAGES;
+      i--
+    ) {
+      const file = files[i];
       let page;
 
       if (file.name in pagesData) {
@@ -365,7 +371,7 @@ app.get('/job-status-event', (c) => {
         for (const job of JOBS.values()) {
           jobs.push(job);
         }
-  
+
         for (const job of FAILED_JOBS.values()) {
           jobs.push(job);
         }

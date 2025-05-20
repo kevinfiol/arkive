@@ -1,6 +1,7 @@
 import { html } from '@hono/hono/html';
 import { Layout } from './layout.ts';
 import { PageTile } from './partial/page-tile.ts';
+import { MAX_HOMEPAGE_PAGES } from '../constants.ts';
 import { formatBytes } from '../util.ts';
 import type { Page } from '../types.ts';
 
@@ -23,7 +24,7 @@ export const Home = ({ pages, size, jobCount, count, nonce }: Props) =>
             ${jobCount > 0 ? `${jobCount} jobs in progress` : 'Job Dashboard'}
           </a>
         </span>
-        <span>Showing ${count < 50 ? count : '50'} of ${count} saved pages</span>
+        <span>Showing ${count < MAX_HOMEPAGE_PAGES ? count : MAX_HOMEPAGE_PAGES} of ${count} saved pages</span>
       </div>
     </header>
     <section class="controls">
